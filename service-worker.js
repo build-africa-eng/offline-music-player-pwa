@@ -13,4 +13,5 @@ workbox.precaching.precacheAndRoute([
   '/manifest.json',
   '/icon.png',
   '/favicon.ico',
+  '/assets/index-Bu_QmJ8Y.js',
 ]);
