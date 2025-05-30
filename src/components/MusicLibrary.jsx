@@ -78,8 +78,11 @@ function MusicLibrary({ onSongSelect }) {
                 </div>
               )}
             </button>
-          ))}
-        </ul>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
