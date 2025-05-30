@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPlaylists, addPlaylist, updatePlaylist, deletePlaylist, getSongById } from '../lib/indexedDB';
+import { getPlaylists, addPlaylist, deletePlaylist, updatePlaylist, getSongById } from '../lib/indexedDB';
 
 function Playlist({ onSongSelect }) {
   const [playlists, setPlaylists] = useState([]);
@@ -8,7 +8,6 @@ function Playlist({ onSongSelect }) {
   const [playlistSongs, setPlaylistSongs] = useState([]);
   const [error, setError] = useState(null);
 
-  // Load playlists on mount
   useEffect(() => {
     async function loadPlaylists() {
       try {
@@ -22,7 +21,6 @@ function Playlist({ onSongSelect }) {
     loadPlaylists();
   }, []);
 
-  // Load songs for selected playlist
   useEffect(() => {
     async function loadPlaylistSongs() {
       if (!selectedPlaylistId) {
@@ -96,7 +94,6 @@ function Playlist({ onSongSelect }) {
       <h2 className="text-2xl font-bold mb-4">Playlists</h2>
       {error && <p className="text-accent mb-4" role="alert">{error}</p>}
       
-      {/* Create Playlist Form */}
       <form onSubmit={handleCreatePlaylist} className="mb-6">
         <div className="flex gap-2">
           <input
@@ -115,9 +112,7 @@ function Playlist({ onSongSelect }) {
         </div>
       </form>
 
-      {/* Playlist List */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-2">Your Playlists</h3>
         {playlists.length === 0 ? (
           <p className="text-text">No playlists yet. Create one above!</p>
         ) : (
@@ -143,14 +138,13 @@ function Playlist({ onSongSelect }) {
         )}
       </div>
 
-      {/* Selected Playlist Songs */}
       {selectedPlaylistId && (
         <div>
           <h3 className="text-lg font-semibold mb-2">
             {playlists.find(p => p.id === selectedPlaylistId)?.name}
           </h3>
           {playlistSongs.length === 0 ? (
-            <p className="text-text">No songs in this playlist.</p>
+            <p className="text-text">No songs in this playlist. Add from Music Library.</p>
           ) : (
             <ul className="list-disc pl-5 space-y-2">
               {playlistSongs.map(song => (
