@@ -4,6 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react()],
-    tailwindcss(),
+    tailwindcss()
   base: '/', // Ensures correct asset paths for Cloudflare Pages
 });
