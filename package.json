@@ -19,6 +19,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
     "tailwindcss": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.8",
     "postcss": "^8.4.31",
     "autoprefixer": "^10.4.16",
     "workbox-window": "^7.0.0",
