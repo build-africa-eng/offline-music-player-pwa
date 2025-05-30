@@ -54,11 +54,11 @@ function MusicLibrary({ onSongSelect }) {
                 {song.title} - {song.artist}
               </button>
               <button
-                onClick={() => setAddToPlaylistSongId(song.id)}
+                onClick={() => setAddToPlaylistSongId(addToPlaylistSongId === song.id ? null : song.id)}
                 className="ml-2 text-primary hover:text-secondary transition-colors"
                 aria-label={`Add ${song.title} to playlist`}
               >
-                Add to Playlist
+                {addToPlaylistSongId === song.id ? 'Cancel' : 'Add to Playlist'}
               </button>
               {addToPlaylistSongId === song.id && (
                 <div className="ml-2 flex flex-col gap-1">
@@ -73,11 +73,13 @@ function MusicLibrary({ onSongSelect }) {
                       >
                         {playlist.name}
                       </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
