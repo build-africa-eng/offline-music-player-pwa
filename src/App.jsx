@@ -43,29 +43,45 @@ function App() {
       <header className="p-4 bg-primary text-white shadow">
         <h1 className="text-3xl font-bold">Offline Music Player</h1>
       </header>
-      <main className="flex flex-col md:flex-row gap-4 p-4 max-w-7xl mx-auto">
-        <div className="flex-1">
+      <main className="p-4 max-w-7xl mx-auto">
+        <div className="flex mb-4">
           <button
-            onClick={handleSelectDirectory}
-            className="mb-4 bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition-colors"
-            aria-label="Select music folder"
+            onClick={() => setView('library')}
+            className={`px-4 py-2 ${view === 'library' ? 'bg-primary text-white' : 'bg-background text-text'} rounded-lg mr-2`}
           >
-            Select Music Folder
+            Library
           </button>
-          {error && (
-            <p className="text-accent mb-4" role="alert">
-              {error}
-            </p>
-          )}
-          <MusicLibrary onSongSelect={handleSongSelect} />
+          <button
+            onClick={() => setView('playlists')}
+            className={`px-4 py-2 ${view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text'} rounded-lg`}
+          >
+            Playlists
+          </button>
         </div>
-        <div className="flex-1">
-          <Player file={currentFile} />
-          <Playlist onSongSelect={handleSongSelect} />
-        </div>
+        {view === 'library' && (
+          <div className="flex-1">
+            <button
+              onClick={handleSelectDirectory}
+              className="mb-4 bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition-colors"
+              aria-label="Select music folder"
+            >
+              Select Music Folder
+            </button>
+            {error && (
+              <p className="text-accent mb-4" role="alert">
+                {error}
+              </p>
+            )}
+            <MusicLibrary onSongSelect={handleSongSelect} />
+          </div>
+        )}
+        {view === 'playlists' && (
+          <div className="flex-1">
+            <Player file={currentFile} />
+            <Playlist onSongSelect={handleSongSelect} />
+          </div>
+        )}
       </main>
     </div>
   );
 }
-
-export default App;
