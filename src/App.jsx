@@ -40,14 +40,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-text font-sans">
-      <header className="p-4 bg-primary text-white">
+      <header className="p-4 bg-primary text-white shadow">
         <h1 className="text-3xl font-bold">Offline Music Player</h1>
       </header>
-      <main className="flex flex-col md:flex-row gap-4 p-4">
+      <main className="flex flex-col md:flex-row gap-4 p-4 max-w-7xl mx-auto">
         <div className="flex-1">
           <button
             onClick={handleSelectDirectory}
-            className="mb-4 bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded"
+            className="mb-4 bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-lg transition-colors"
             aria-label="Select music folder"
           >
             Select Music Folder
@@ -61,7 +61,7 @@ function App() {
         </div>
         <div className="flex-1">
           <Player file={currentFile} />
-          <Playlist />
+          <Playlist onSongSelect={handleSongSelect} />
         </div>
       </main>
     </div>
