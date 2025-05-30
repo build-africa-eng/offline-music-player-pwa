@@ -4,6 +4,7 @@ import Player from './src/components/Player';
 import Playlist from './src/components/Playlist';
 import { selectMusicDirectory } from './lib/fileSystem';
 import { extractMetadata, addSong } from './lib/indexedDB';
+import 'index.css';
 
 function App() {
   const [currentFile, setCurrentFile] = useState(null);
