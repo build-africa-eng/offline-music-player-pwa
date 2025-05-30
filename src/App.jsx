@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import MusicLibrary from './components/MusicLibrary';
-import Player from './components/Player';
-import Playlist from './components/Playlist';
+import MusicLibrary from './src/components/MusicLibrary';
+import Player from './src/components/Player';
+import Playlist from './src/components/Playlist';
 import { selectMusicDirectory } from './lib/fileSystem';
 import { extractMetadata, addSong } from './lib/indexedDB';
 
