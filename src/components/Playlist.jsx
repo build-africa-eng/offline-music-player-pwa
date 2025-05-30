@@ -1,3 +1,4 @@
+import { useState } from 'react';
 function Playlist() {
   return (
     <div className="p-4 bg-background text-text">
