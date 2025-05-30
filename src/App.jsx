@@ -3,7 +3,8 @@ import MusicLibrary from './components/MusicLibrary';
 import Player from './components/Player';
 import Playlist from './components/Playlist';
 import { selectMusicDirectory } from './lib/fileSystem';
-import { extractMetadata, addSong } from './lib/indexedDB';
+import { addSong } from './lib/indexedDB';
+import { extractMetadata } from './lib/metadata';
 import './index.css';
 
 function App() {
@@ -29,12 +30,16 @@ function App() {
     }
   };
 
+  const handleSongSelect = (file) => {
+    setCurrentFile(file);
+  };
+
   useEffect(() => {
     console.log('App.jsx mounted successfully');
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-text">
+    <div className="min-h-screen bg-background text-text font-sans">
       <header className="p-4 bg-primary text-white">
         <h1 className="text-3xl font-bold">Offline Music Player</h1>
       </header>
@@ -52,7 +57,7 @@ function App() {
               {error}
             </p>
           )}
-          <MusicLibrary />
+          <MusicLibrary onSongSelect={handleSongSelect} />
         </div>
         <div className="flex-1">
           <Player file={currentFile} />
