@@ -55,7 +55,7 @@ function MusicLibrary({ onSongSelect }) {
               </button>
               <button
                 onClick={() => setAddToPlaylistSongId(addToPlaylistSongId === song.id ? null : song.id)}
-                className="ml-2 text-primary hover:text-secondary transition-colors"
+                className="ml-2 bg-primary hover:bg-secondary text-white py-1 px-2 rounded text-sm transition-colors"
                 aria-label={`Add ${song.title} to playlist`}
               >
                 {addToPlaylistSongId === song.id ? 'Cancel' : 'Add to Playlist'}
@@ -63,7 +63,7 @@ function MusicLibrary({ onSongSelect }) {
               {addToPlaylistSongId === song.id && (
                 <div className="ml-2 flex flex-col gap-1">
                   {playlists.length === 0 ? (
-                    <p className="text-text text-sm">No playlists available.</p>
+                    <p className="text-text text-sm">No playlists available. Create one first.</p>
                   ) : (
                     playlists.map(playlist => (
                       <button
