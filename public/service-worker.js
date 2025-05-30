@@ -1,13 +1,17 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js');
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.1.0/workbox-sw.js');
+
 workbox.routing.registerRoute(
   ({ request }) => request.mode === 'navigate',
   new workbox.strategies.StaleWhileRevalidate({
     cacheName: 'app-shell',
   })
 );
+
 workbox.precaching.precacheAndRoute([
   '/',
   '/index.html',
-  '/static/js/bundle.js',
-  '/static/css/main.css'
+  '/manifest.json',
+  '/icon.png',
+  '/favicon.ico',
+  '/assets/index-Bu_QmJ8Y.js',
 ]);
