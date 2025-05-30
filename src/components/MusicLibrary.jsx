@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSongs } from '../lib/indexedDB';
 
-function MusicLibrary() {
+function MusicLibrary({ onSongSelect }) {
   const [songs, setSongs] = useState([]);
   const [error, setError] = useState(null);
 
@@ -27,7 +27,11 @@ function MusicLibrary() {
       ) : (
         <ul className="list-disc pl-5">
           {songs.map(song => (
-            <li key={song.id} className="mb-2">
+            <li
+              key={song.id}
+              className="mb-2 cursor-pointer hover:text-primary"
+              onClick={() => onSongSelect(song.file)}
+            >
               {song.title} - {song.artist}
             </li>
           ))}
