@@ -10,6 +10,7 @@ import './index.css';
 function App() {
   const [currentFile, setCurrentFile] = useState(null);
   const [error, setError] = useState(null);
+  const [view, setView] = useState('library'); // 🔧 Missing state added
 
   const handleSelectDirectory = async () => {
     try {
@@ -47,17 +48,22 @@ function App() {
         <div className="flex mb-4">
           <button
             onClick={() => setView('library')}
-            className={`px-4 py-2 ${view === 'library' ? 'bg-primary text-white' : 'bg-background text-text'} rounded-lg mr-2`}
+            className={`px-4 py-2 ${
+              view === 'library' ? 'bg-primary text-white' : 'bg-background text-text'
+            } rounded-lg mr-2`}
           >
             Library
           </button>
           <button
             onClick={() => setView('playlists')}
-            className={`px-4 py-2 ${view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text'} rounded-lg`}
+            className={`px-4 py-2 ${
+              view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text'
+            } rounded-lg`}
           >
             Playlists
           </button>
         </div>
+
         {view === 'library' && (
           <div className="flex-1">
             <button
@@ -75,6 +81,7 @@ function App() {
             <MusicLibrary onSongSelect={handleSongSelect} />
           </div>
         )}
+
         {view === 'playlists' && (
           <div className="flex-1">
             <Player file={currentFile} />
@@ -85,3 +92,5 @@ function App() {
     </div>
   );
 }
+
+export default App;
