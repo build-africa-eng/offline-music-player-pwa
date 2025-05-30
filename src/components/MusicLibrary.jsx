@@ -73,11 +73,6 @@ function MusicLibrary({ onSongSelect }) {
                       >
                         {playlist.name}
                       </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </button>
                 </li>
               ))}
             </ul>
