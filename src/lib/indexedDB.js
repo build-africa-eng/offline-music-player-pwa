@@ -8,7 +8,6 @@ export async function initDB() {
         db.createObjectStore('playlists', { keyPath: 'id' });
       }
       if (oldVersion < 2) {
-        // Ensure playlists store exists for older databases
         if (!db.objectStoreNames.contains('playlists')) {
           db.createObjectStore('playlists', { keyPath: 'id' });
         }
@@ -29,7 +28,7 @@ export async function getSongs() {
 
 export async function addPlaylist(playlist) {
   const db = await initDB();
-  const id = `playlist-${Date.now()}`; // Unique ID
+  const id = `playlist-${Date.now()}`;
   await db.put('playlists', { id, name: playlist.name, songIds: playlist.songIds || [] });
   return id;
 }
