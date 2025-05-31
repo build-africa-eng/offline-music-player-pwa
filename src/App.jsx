@@ -10,7 +10,7 @@ import './index.css';
 function App() {
   const [currentFile, setCurrentFile] = useState(null);
   const [error, setError] = useState(null);
-  const [view, setView] = useState('library'); // 🔧 Missing state added
+  const [view, setView] = useState('library');
 
   const handleSelectDirectory = async () => {
     try {
@@ -45,25 +45,21 @@ function App() {
         <h1 className="text-3xl font-bold">Offline Music Player</h1>
       </header>
       <main className="p-4 max-w-7xl mx-auto">
-        <div className="flex mb-4">
+        <Player file={currentFile} />
+        <div className="flex mb-4 space-x-2">
           <button
             onClick={() => setView('library')}
-            className={`px-4 py-2 ${
-              view === 'library' ? 'bg-primary text-white' : 'bg-background text-text'
-            } rounded-lg mr-2`}
+            className={`px-4 py-2 rounded-lg transition-colors ${view === 'library' ? 'bg-primary text-white' : 'bg-background text-text hover:bg-secondary hover:text-white'}`}
           >
             Library
           </button>
           <button
             onClick={() => setView('playlists')}
-            className={`px-4 py-2 ${
-              view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text'
-            } rounded-lg`}
+            className={`px-4 py-2 rounded-lg transition-colors ${view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text hover:bg-secondary hover:text-white'}`}
           >
             Playlists
           </button>
         </div>
-
         {view === 'library' && (
           <div className="flex-1">
             <button
@@ -81,10 +77,8 @@ function App() {
             <MusicLibrary onSongSelect={handleSongSelect} />
           </div>
         )}
-
         {view === 'playlists' && (
           <div className="flex-1">
-            <Player file={currentFile} />
             <Playlist onSongSelect={handleSongSelect} />
           </div>
         )}
