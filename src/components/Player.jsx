@@ -1,21 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { extractMetadata } from '../lib/metadata';
 
-function Player({ file }) {
+function Player({ file, onFileSelect }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(() => {
+    const savedVolume = localStorage.getItem('playerVolume');
+    return savedVolume !== null ? parseFloat(savedVolume) : 1;
+  });
   const [objectUrl, setObjectUrl] = useState(null);
   const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown' });
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Handle object URL creation and cleanup
+  // Handle object URL and metadata
   useEffect(() => {
     if (file) {
       const url = URL.createObjectURL(file);
       setObjectUrl(url);
-      // Extract metadata
       extractMetadata(file).then(data => {
         setMetadata({
           title: data.title || file.name,
@@ -30,6 +33,14 @@ function Player({ file }) {
       setMetadata({ title: 'Unknown', artist: 'Unknown' });
     }
   }, [file]);
+
+  // Persist volume
+  useEffect(() => {
+    localStorage.setItem('playerVolume', volume);
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   // Handle play/pause
   const handlePlayPause = () => {
@@ -66,9 +77,6 @@ function Player({ file }) {
   const handleVolumeChange = (e) => {
     const vol = parseFloat(e.target.value);
     setVolume(vol);
-    if (audioRef.current) {
-      audioRef.current.volume = vol;
-    }
   };
 
   // Format time (mm:ss)
@@ -79,9 +87,38 @@ function Player({ file }) {
     return `${min}:${sec}`;
   };
 
+  // Handle drag and drop
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type.startsWith('audio/')) {
+      onFileSelect(droppedFile);
+    }
+  };
+
   return (
     <div className="p-4 bg-background text-text rounded-lg shadow-md mb-4 w-full max-w-2xl mx-auto">
       <h2 className="text-xl font-semibold mb-2">Now Playing</h2>
+      <div
+        className={`mb-4 p-4 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <p className="text-sm text-center text-text">
+          Drag & drop an audio file here
+        </p>
+      </div>
       {file && objectUrl ? (
         <>
           <audio
