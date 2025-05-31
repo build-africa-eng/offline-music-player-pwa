@@ -5,7 +5,6 @@ import Playlist from './components/Playlist';
 import { selectMusicDirectory } from './lib/fileSystem';
 import { addSong } from './lib/indexedDB';
 import { extractMetadata } from './lib/metadata';
-import './index.css';
 
 function App() {
   const [currentFile, setCurrentFile] = useState(null);
@@ -31,8 +30,16 @@ function App() {
     }
   };
 
-  const handleSongSelect = (file) => {
-    setCurrentFile(file);
+  const handleSongSelect = async (file) => {
+    try {
+      setError(null);
+      const metadata = await extractMetadata(file);
+      await addSong({ ...metadata, file }); // Ensure dropped files are saved
+      setCurrentFile(file);
+    } catch (err) {
+      console.error('Error selecting song:', err);
+      setError('Failed to play song.');
+    }
   };
 
   useEffect(() => {
@@ -45,7 +52,7 @@ function App() {
         <h1 className="text-3xl font-bold">Offline Music Player</h1>
       </header>
       <main className="p-4 max-w-7xl mx-auto">
-        <Player file={currentFile} />
+        <Player file={currentFile} onFileSelect={handleSongSelect} />
         <div className="flex mb-4 space-x-2">
           <button
             onClick={() => setView('library')}
