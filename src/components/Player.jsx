@@ -3,6 +3,7 @@ import { extractMetadata } from '../lib/metadata';
 
 function Player({ file, onFileSelect }) {
   const audioRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -12,7 +13,6 @@ function Player({ file, onFileSelect }) {
   });
   const [objectUrl, setObjectUrl] = useState(null);
   const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown' });
-  const [isDragging, setIsDragging] = useState(false);
 
   // Handle object URL and metadata
   useEffect(() => {
@@ -87,37 +87,31 @@ function Player({ file, onFileSelect }) {
     return `${min}:${sec}`;
   };
 
-  // Handle drag and drop
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.type.startsWith('audio/')) {
-      onFileSelect(droppedFile);
+  // Handle file input
+  const handleFileInput = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type.startsWith('audio/')) {
+      onFileSelect(selectedFile);
     }
   };
 
   return (
-    <div className="p-4 bg-background text-text rounded-lg shadow-md mb-4 w-full max-w-2xl mx-auto">
-      <h2 className="text-xl font-semibold mb-2">Now Playing</h2>
-      <div
-        className={`mb-4 p-4 border-2 border-dashed rounded-lg transition-colors ${isDragging ? 'border-primary bg-primary/10' : 'border-gray-300'}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <p className="text-sm text-center text-text">
-          Drag & drop an audio file here
-        </p>
+    <div className="p-3 sm:p-4 bg-background text-text rounded-lg shadow-md mb-4 w-full max-w-lg mx-auto">
+      <h2 className="text-lg sm:text-xl font-semibold mb-2">Now Playing</h2>
+      <div className="mb-3">
+        <button
+          onClick={() => fileInputRef.current.click()}
+          className="w-full bg-primary hover:bg-secondary text-white text-sm sm:text-base py-2 px-3 rounded-lg transition-colors"
+        >
+          Upload Audio File
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileInput}
+          accept="audio/*"
+          className="hidden"
+        />
       </div>
       {file && objectUrl ? (
         <>
@@ -128,14 +122,14 @@ function Player({ file, onFileSelect }) {
             onEnded={() => setIsPlaying(false)}
             autoPlay
           />
-          <div className="mb-2 text-sm truncate">
+          <div className="mb-2 text-xs sm:text-sm truncate">
             <strong>{metadata.title}</strong> - {metadata.artist}
           </div>
 
-          <div className="flex items-center space-x-4 flex-wrap">
+          <div className="flex items-center space-x-2 sm:space-x-4 flex-wrap gap-2">
             <button
               onClick={handlePlayPause}
-              className="bg-primary hover:bg-secondary text-white px-3 py-1 rounded transition-colors"
+              className="bg-primary hover:bg-secondary text-white px-2 sm:px-3 py-1 rounded transition-colors text-sm sm:text-base"
             >
               {isPlaying ? 'Pause' : 'Play'}
             </button>
@@ -146,17 +140,17 @@ function Player({ file, onFileSelect }) {
               max={duration || 0}
               value={progress}
               onChange={handleSeek}
-              className="flex-1 w-full sm:w-auto"
+              className="flex-1 w-full"
               aria-label="Seek"
             />
 
-            <span className="text-xs w-16 text-right">
+            <span className="text-xs w-14 sm:w-16 text-right">
               {formatTime(progress)} / {formatTime(duration)}
             </span>
           </div>
 
           <div className="mt-2 flex items-center space-x-2">
-            <label className="text-sm">Volume</label>
+            <label className="text-xs sm:text-sm">Volume</label>
             <input
               type="range"
               min="0"
@@ -164,13 +158,13 @@ function Player({ file, onFileSelect }) {
               step="0.01"
               value={volume}
               onChange={handleVolumeChange}
-              className="w-24 sm:w-32"
+              className="w-20 sm:w-32"
               aria-label="Volume"
             />
           </div>
         </>
       ) : (
-        <p className="text-text text-sm">No song selected</p>
+        <p className="text-text text-xs sm:text-sm">No song selected</p>
       )}
     </div>
   );
