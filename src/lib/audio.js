@@ -1,17 +1,16 @@
-// Mock lyrics data (replace with API in production)
+// Mock lyrics data
 const mockLyrics = {
   'song1': `Verse 1\nThis is a sample song...\nChorus\nLa la la...`,
   'song2': `Intro\nWelcome to the beat...\nVerse 1\nKeep it moving...`,
 };
 
-// Mock lyrics fetch (replace with Musixmatch/Genius API)
+// Mock lyrics fetch (placeholder for Musixmatch/Genius API)
 export async function getLyrics(songId, title, artist) {
-  // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 500));
   return { lyrics: mockLyrics[songId] || `${title} by ${artist}\nNo lyrics available.` };
 }
 
-// Apply equalizer using AudioContext
+// Equalizer
 export function applyEqualizer(audioElement, { bass, treble }) {
   if (!audioElement) return;
 
@@ -35,7 +34,7 @@ export function applyEqualizer(audioElement, { bass, treble }) {
   return () => context.close();
 }
 
-// Apply crossfade between tracks
+// Crossfade
 export async function applyCrossfade(currentAudio, nextAudio, duration = 1000) {
   if (!currentAudio || !nextAudio) return;
 
