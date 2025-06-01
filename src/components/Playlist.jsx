@@ -4,7 +4,7 @@ import { addPlaylist, deletePlaylist, updatePlaylist, getSongById } from '../lib
 import { ListMusic, Trash2 } from 'lucide-react';
 
 function Playlist() {
-  const { playlists, error, selectSong } = useMusic();
+  const { playlists, error, selectSong, setQueue } = useMusic();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
   const [playlistSongs, setPlaylistSongs] = useState([]);
@@ -19,14 +19,16 @@ function Playlist() {
         const playlist = playlists.find((p) => p.id === selectedPlaylistId);
         if (playlist) {
           const songs = await Promise.all(playlist.songIds.map(async (id) => await getSongById(id)));
-          setPlaylistSongs(songs.filter((song) => song));
+          const filteredSongs = songs.filter((song) => song);
+          setPlaylistSongs(filteredSongs);
+          setQueue(filteredSongs); // Update queue with playlist songs
         }
       } catch (err) {
-        console.error('Error loading playlist songs:', err);
+        console.error('Error downloading playlist songs:', err);
       }
     }
     loadPlaylistSongs();
-  }, [selectedPlaylistId, playlists]);
+  }, [selectedPlaylistId, playlists, setQueue]);
 
   const handleCreatePlaylist = async (e) => {
     e.preventDefault();
@@ -56,6 +58,7 @@ function Playlist() {
         playlist.songIds = playlist.songIds.filter((id) => id !== songId);
         await updatePlaylist(playlist);
         setPlaylistSongs(playlistSongs.filter((song) => song.id !== songId));
+        setQueue(playlistSongs.filter((song) => song.id !== songId)); // Update queue
       }
     } catch (err) {
       console.error('Error removing song from playlist:', err);
