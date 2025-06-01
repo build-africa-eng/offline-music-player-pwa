@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { Upload, File } from 'lucide-react';
 
-function Upload() {
+function UploadComponent() {
   const { handleUpload } = useMusic();
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
@@ -58,4 +58,4 @@ function Upload() {
   );
 }
 
-export default Upload;
+export default UploadComponent;
