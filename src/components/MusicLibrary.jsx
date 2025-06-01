@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { FolderPlus, ListMusic, PlusCircle } from 'lucide-react';
-import Upload from './Upload';
+import UploadComponent from './Upload'; // Updated import
 
 function MusicLibrary() {
   const { songs, error, playlists, handleSelectDirectory, selectSong, addToPlaylist } = useMusic();
@@ -29,7 +29,7 @@ function MusicLibrary() {
         >
           <FolderPlus className="w-4 h-4" /> Select Music Folder
         </button>
-        <Upload />
+        <UploadComponent /> {/* Updated usage */}
       </div>
       <div className="mb-3 sm:mb-4">
         <label className="text-xs sm:text-sm mr-2">Add to playlist:</label>
