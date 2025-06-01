@@ -34,7 +34,7 @@ function App() {
         setIsFading(false);
         setNextBackground(null);
       }, 500);
-    }, 1000);
+    }, 3600000);
 
     return () => clearInterval(interval);
   }, []);
@@ -65,6 +65,7 @@ function App() {
                 className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${
                   view === 'library' ? 'bg-primary text-white' : 'bg-background/80 text-text hover:bg-secondary hover:text-white'
                 }`}
+                aria-label="View music library"
               >
                 Library
               </button>
@@ -73,6 +74,7 @@ function App() {
                 className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${
                   view === 'playlists' ? 'bg-primary text-white' : 'bg-background/80 text-text hover:bg-secondary hover:text-white'
                 }`}
+                aria-label="View playlists"
               >
                 Playlists
               </button>
