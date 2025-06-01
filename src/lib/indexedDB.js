@@ -1,54 +1,50 @@
 import { openDB } from 'idb';
 
-export async function initDB() {
-  return openDB('music-db', 2, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        db.createObjectStore('songs', { keyPath: 'id' });
-        db.createObjectStore('playlists', { keyPath: 'id' });
+const DB_NAME = 'SongsDB';
+const SONGS_STORE = 'songs';
+const PLAYLISTS_STORE = 'playlists';
+
+async function getDb() {
+  return await openDB(DB_NAME, 1, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(SONGS_STORE)) {
+        db.createObjectStore(SONGS_STORE, { keyPath: 'id' });
       }
-      if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains('playlists')) {
-          db.createObjectStore('playlists', { keyPath: 'id' });
-        }
+      if (!db.objectStoreNames.contains(PLAYLISTS_STORE)) {
+        db.createObjectStore(PLAYLISTS_STORE, { keyPath: 'id' });
       }
     },
   });
 }
 
 export async function addSong(song) {
-  const db = await initDB();
-  await db.put('songs', song);
+  const db = await getDb();
+  await db.put(SONGS_STORE, song);
 }
 
 export async function getSongs() {
-  const db = await initDB();
-  return db.getAll('songs');
+  const db = await getDb();
+  return await db.getAll(SONGS_STORE);
 }
 
-export async function addPlaylist(playlist) {
-  const db = await initDB();
-  const id = `playlist-${Date.now()}`;
-  await db.put('playlists', { id, name: playlist.name, songIds: playlist.songIds || [] });
+export async function createPlaylist(name, songIds = []) {
+  const db = await getDb();
+  const id = crypto.randomUUID();
+  await db.put(PLAYLISTS_STORE, { id, name, songIds });
   return id;
 }
 
 export async function getPlaylists() {
-  const db = await initDB();
-  return db.getAll('playlists');
+  const db = await getDb();
+  return await db.getAll(PLAYLISTS_STORE);
 }
 
 export async function updatePlaylist(playlist) {
-  const db = await initDB();
-  await db.put('playlists', playlist);
+  const db = await getDb();
+  await db.put(PLAYLISTS_STORE, playlist);
 }
 
 export async function deletePlaylist(id) {
-  const db = await initDB();
-  await db.delete('playlists', id);
-}
-
-export async function getSongById(id) {
-  const db = await initDB();
-  return db.get('songs', id);
+  const db = await getDb();
+  await db.delete(PLAYLISTS_STORE, id);
 }
