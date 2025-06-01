@@ -24,7 +24,7 @@
     "postcss": "^8.4.31",
     "autoprefixer": "^10.4.16",
     "workbox-window": "^7.0.0",
-     "wavesurfer.js": "^7.9.5"
+    "wavesurfer.js": "^7.9.5"
      "react-modal": "^3.16.3"
     "lucide-react": "^0.511.0",
     "eslint": "^9.0.0",
