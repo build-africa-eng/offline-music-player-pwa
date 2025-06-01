@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMusic } from '../context/MusicContext';
-import { Play, Pause, Volume2, Upload, Moon, Sun } from 'lucide-react';
+import { Play, Pause, Volume2, Moon, Sun } from 'lucide-react';
 import { extractMetadata } from '../lib/metadata';
 
 function Player() {
-  const { currentFile, handleUpload } = useMusic();
+  const { currentFile } = useMusic();
   const audioRef = useRef(null);
-  const fileInputRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -73,7 +72,7 @@ function Player() {
     if (!s || isNaN(s)) return '0:00';
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60).toString().padStart(2, '0');
-    return `${m}:${sec}`; // Fixed syntax
+    return `${m}:${sec}`;
   };
 
   return (
@@ -81,18 +80,6 @@ function Player() {
       {/* Theme Toggle */}
       <button onClick={() => setDark(!dark)} className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
         {dark ? <Sun size={20} /> : <Moon size={20} />}
-      </button>
-
-      {/* Upload Button */}
-      <button onClick={() => fileInputRef.current.click()} className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
-        <Upload size={20} />
-        <input
-          type="file"
-          accept="audio/*"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={e => handleUpload(e.target.files[0])}
-        />
       </button>
 
       {/* Artwork */}
