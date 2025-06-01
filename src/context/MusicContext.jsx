@@ -22,10 +22,11 @@ export function MusicProvider({ children }) {
         const [songList, playlistList] = await Promise.all([getSongs(), getPlaylists()]);
         setSongs(songList);
         setPlaylists(playlistList);
-        setQueue(songList); // Initialize queue with library
+        setQueue(songList);
       } catch (err) {
         console.error('Error loading data:', err);
         setError('Failed to load data.');
+        toast.error('Failed to load data.');
       }
     }
     loadData();
@@ -56,7 +57,7 @@ export function MusicProvider({ children }) {
       }
       const updatedSongs = await getSongs();
       setSongs(updatedSongs);
-      setQueue(updatedSongs); // Update queue
+      setQueue(updatedSongs);
       toast.success('Music folder loaded!');
     } catch (err) {
       console.error('Error selecting directory:', err);
@@ -79,7 +80,7 @@ export function MusicProvider({ children }) {
       setCurrentFile(file);
       const updatedSongs = await getSongs();
       setSongs(updatedSongs);
-      setQueue(updatedSongs); // Update queue
+      setQueue(updatedSongs);
       toast.success('Song uploaded!');
     } catch (err) {
       console.error('Error uploading song:', err);
@@ -133,6 +134,7 @@ export function MusicProvider({ children }) {
         setShuffle,
         repeat,
         setRepeat,
+        fileMapRef,
         handleSelectDirectory,
         handleUpload,
         selectSong,
