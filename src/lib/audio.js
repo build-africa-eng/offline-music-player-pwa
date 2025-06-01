@@ -1,41 +1,47 @@
 // Mock lyrics data
 const mockLyrics = {
-  'song1': `Verse 1\nThis is a sample song...\nChorus\nLa la la...`,
-  'song2': `Intro\nWelcome to the beat...\nVerse 1\nKeep it moving...`,
+  'song1': `[00:00.00]Verse 1\n[00:15.00]This is a sample song...\n[00:30.00]Chorus\n[00:45.00]La la la...`,
+  'song2': `[00:00.00]Intro\n[00:10.00]Welcome to the beat...\n[00:20.00]Verse 1\n[00:30.00]Keep it moving...`,
 };
 
-// Mock lyrics fetch (placeholder for Musixmatch/Genius API)
 export async function getLyrics(songId, title, artist) {
   await new Promise(resolve => setTimeout(resolve, 500));
-  return { lyrics: mockLyrics[songId] || `${title} by ${artist}\nNo lyrics available.` };
+  const key = songId?.toLowerCase()?.trim();
+  return mockLyrics[key] || `${title} by ${artist}\nNo lyrics available.`;
 }
 
-// Equalizer
 export function applyEqualizer(audioElement, { bass, treble }) {
-  if (!audioElement) return;
+  if (!audioElement) return () => {};
 
-  const context = new (window.AudioContext || window.webkitAudioContext)();
-  const source = context.createMediaElementSource(audioElement);
-  const bassFilter = context.createBiquadFilter();
-  const trebleFilter = context.createBiquadFilter();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (sourceNode) sourceNode.disconnect();
+  if (bassFilter) bassFilter.disconnect();
+  if (trebleFilter) trebleFilter.disconnect();
+
+  sourceNode = audioCtx.createMediaElementSource(audioElement);
+  bassFilter = audioCtx.createBiquadFilter();
+  trebleFilter = audioCtx.createBiquadFilter();
 
   bassFilter.type = 'lowshelf';
-  bassFilter.frequency.setValueAtTime(200, context.currentTime);
-  bassFilter.gain.setValueAtTime(bass, context.currentTime);
+  bassFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
+  bassFilter.gain.setValueAtTime(bass, audioCtx.currentTime);
 
   trebleFilter.type = 'highshelf';
-  trebleFilter.frequency.setValueAtTime(4000, context.currentTime);
-  trebleFilter.gain.setValueAtTime(treble, context.currentTime);
+  trebleFilter.frequency.setValueAtTime(4000, audioCtx.currentTime);
+  trebleFilter.gain.setValueAtTime(treble, audioCtx.currentTime);
 
-  source.connect(bassFilter);
+  sourceNode.connect(bassFilter);
   bassFilter.connect(trebleFilter);
-  trebleFilter.connect(context.destination);
+  trebleFilter.connect(audioCtx.destination);
 
-  return () => context.close();
+  return () => {
+    sourceNode?.disconnect();
+    bassFilter?.disconnect();
+    trebleFilter?.disconnect();
+  };
 }
 
-// Crossfade
-export async function applyCrossfade(currentAudio, nextAudio, duration = 1000) {
+export async function applyCrossfade(currentAudio, nextAudio, selectSongCallback, duration = 1000) {
   if (!currentAudio || !nextAudio) return;
 
   const fadeOut = (audio, duration) => {
@@ -78,4 +84,5 @@ export async function applyCrossfade(currentAudio, nextAudio, duration = 1000) {
   };
 
   await Promise.all([fadeOut(currentAudio, duration), fadeIn(nextAudio, duration)]);
+  selectSongCallback?.();
 }
