@@ -54,7 +54,7 @@ function App() {
           }}
         />
         <div className="absolute inset-0 bg-black/50 z-0" />
-        <div className="relative z-10 text-white p-3 sm:p-4 pb-40 sm:pb-48">
+        <div className="relative z-10 text-white p-3 sm:p-4 pb-32 sm:pb-40">
           <header className="bg-primary text-white shadow rounded-lg mb-3 sm:mb-4">
             <h1 className="text-2xl sm:text-3xl font-bold p-3 sm:p-4">Offline Music Player</h1>
           </header>
