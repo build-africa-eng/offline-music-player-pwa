@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { FolderPlus, ListMusic, PlusCircle } from 'lucide-react';
+import Upload from './Upload';
 
 function MusicLibrary() {
   const { songs, error, playlists, handleSelectDirectory, selectSong, addToPlaylist } = useMusic();
@@ -20,13 +21,16 @@ function MusicLibrary() {
         <ListMusic className="w-6 h-6" /> Music Library
       </h2>
       {error && <p className="text-accent mb-3 sm:mb-4 text-xs sm:text-sm">{error}</p>}
-      <button
-        onClick={handleSelectDirectory}
-        className="mb-3 sm:mb-4 bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
-        aria-label="Select music folder"
-      >
-        <FolderPlus className="w-4 h-4" /> Select Music Folder
-      </button>
+      <div className="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-4">
+        <button
+          onClick={handleSelectDirectory}
+          className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
+          aria-label="Select music folder"
+        >
+          <FolderPlus className="w-4 h-4" /> Select Music Folder
+        </button>
+        <Upload />
+      </div>
       <div className="mb-3 sm:mb-4">
         <label className="text-xs sm:text-sm mr-2">Add to playlist:</label>
         <select
@@ -41,7 +45,7 @@ function MusicLibrary() {
         </select>
       </div>
       {songs.length === 0 ? (
-        <p className="text-text text-xs sm:text-sm">No songs found. Select a music folder.</p>
+        <p className="text-text text-xs sm:text-sm">No songs found. Select a music folder or upload files.</p>
       ) : (
         <ul className="space-y-2">
           {songs.map(song => {
