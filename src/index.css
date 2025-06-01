@@ -35,3 +35,11 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
   @apply w-5 h-5 bg-primary rounded-full cursor-pointer;
 }
+
+/* Fallback for offline mode */
+@media (prefers-reduced-data: reduce), (offline) {
+  body > div {
+    background-image: none !important;
+    background-color: var(--color-background);
+  }
+}
