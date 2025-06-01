@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useMusic } from '../context/MusicContext';
 import { FolderPlus, ListMusic, PlusCircle } from 'lucide-react';
-import UploadComponent from './Upload'; // Updated import
+import UploadComponent from './Upload';
 
 function MusicLibrary() {
-  const { songs, error, playlists, handleSelectDirectory, selectSong, addToPlaylist } = useMusic();
+  const { songs, error, playlists, handleSelectDirectory, selectSong, addToPlaylist, setQueue } = useMusic();
   const [selectedPlaylistId, setSelectedPlaylistId] = useState('');
   const [prompted, setPrompted] = useState(false);
 
@@ -14,6 +14,11 @@ function MusicLibrary() {
       setPrompted(true);
     }
   }, [songs, prompted, handleSelectDirectory]);
+
+  const handleSongSelect = (songId) => {
+    selectSong(songId);
+    setQueue(songs); // Reset queue to library
+  };
 
   return (
     <div className="p-3 sm:p-4 bg-background/80 text-text rounded-lg shadow-md backdrop-blur-sm">
@@ -29,7 +34,7 @@ function MusicLibrary() {
         >
           <FolderPlus className="w-4 h-4" /> Select Music Folder
         </button>
-        <UploadComponent /> {/* Updated usage */}
+        <UploadComponent />
       </div>
       <div className="mb-3 sm:mb-4">
         <label className="text-xs sm:text-sm mr-2">Add to playlist:</label>
@@ -54,7 +59,7 @@ function MusicLibrary() {
             return (
               <li key={song.id} className="flex items-center justify-between flex-wrap gap-2">
                 <button
-                  onClick={() => selectSong(song.id)}
+                  onClick={() => handleSongSelect(song.id)}
                   className="text-left flex-1 hover:text-primary transition-colors text-sm sm:text-base py-1"
                 >
                   {song.title} - {song.artist}
