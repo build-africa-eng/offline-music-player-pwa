@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { useMusic } from '../context/MusicContext';
 import { extractMetadata } from '../lib/metadata';
 
-function Player({ file, onFileSelect }) {
+function Player() {
+  const { currentFile, handleUpload } = useMusic();
   const audioRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -14,14 +16,13 @@ function Player({ file, onFileSelect }) {
   const [objectUrl, setObjectUrl] = useState(null);
   const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown' });
 
-  // Handle object URL and metadata
   useEffect(() => {
-    if (file) {
-      const url = URL.createObjectURL(file);
+    if (currentFile) {
+      const url = URL.createObjectURL(currentFile);
       setObjectUrl(url);
-      extractMetadata(file).then(data => {
+      extractMetadata(currentFile).then(data => {
         setMetadata({
-          title: data.title || file.name,
+          title: data.title || currentFile.name,
           artist: data.artist || 'Unknown'
         });
       });
@@ -32,9 +33,8 @@ function Player({ file, onFileSelect }) {
       setObjectUrl(null);
       setMetadata({ title: 'Unknown', artist: 'Unknown' });
     }
-  }, [file]);
+  }, [currentFile]);
 
-  // Persist volume
   useEffect(() => {
     localStorage.setItem('playerVolume', volume);
     if (audioRef.current) {
@@ -42,7 +42,6 @@ function Player({ file, onFileSelect }) {
     }
   }, [volume]);
 
-  // Handle play/pause
   const handlePlayPause = () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -55,7 +54,6 @@ function Player({ file, onFileSelect }) {
     }
   };
 
-  // Update progress and duration
   const handleTimeUpdate = () => {
     const audio = audioRef.current;
     if (audio) {
@@ -64,7 +62,6 @@ function Player({ file, onFileSelect }) {
     }
   };
 
-  // Seek to position
   const handleSeek = (e) => {
     const audio = audioRef.current;
     if (audio) {
@@ -73,13 +70,11 @@ function Player({ file, onFileSelect }) {
     }
   };
 
-  // Adjust volume
   const handleVolumeChange = (e) => {
     const vol = parseFloat(e.target.value);
     setVolume(vol);
   };
 
-  // Format time (mm:ss)
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00';
     const min = Math.floor(seconds / 60);
@@ -87,16 +82,15 @@ function Player({ file, onFileSelect }) {
     return `${min}:${sec}`;
   };
 
-  // Handle file input
   const handleFileInput = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile && selectedFile.type.startsWith('audio/')) {
-      onFileSelect(selectedFile);
+      handleUpload(selectedFile);
     }
   };
 
   return (
-    <div className="p-3 sm:p-4 bg-background text-text rounded-lg shadow-md mb-4 w-full max-w-lg mx-auto">
+    <div className="p-3 sm:p-4 bg-background/80 text-text rounded-lg shadow-md mb-4 w-full max-w-lg mx-auto backdrop-blur-sm">
       <h2 className="text-lg sm:text-xl font-semibold mb-2">Now Playing</h2>
       <div className="mb-3">
         <button
@@ -113,7 +107,7 @@ function Player({ file, onFileSelect }) {
           className="hidden"
         />
       </div>
-      {file && objectUrl ? (
+      {currentFile && objectUrl ? (
         <>
           <audio
             ref={audioRef}
