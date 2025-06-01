@@ -38,9 +38,21 @@ input[type="range"]::-moz-range-thumb {
 }
 
 input[orient="vertical"] {
-  writing-mode: bt-lr; /* For vertical orientation */
+  writing-mode: bt-lr;
   -webkit-appearance: slider-vertical;
   @apply h-20 w-1;
+}
+
+@media (max-width: 640px) {
+  .player-controls {
+    @apply flex-col gap-2;
+  }
+  .waveform-container {
+    @apply h-8;
+  }
+  .lyrics-container {
+    @apply max-h-24 text-xs;
+  }
 }
 
 /* Fallback for offline mode */
