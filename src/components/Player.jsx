@@ -16,7 +16,7 @@ function Player() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(() => localStorage.getItem('playerVolume') || 1);
+  const [volume, setVolume] = useState(() => parseFloat(localStorage.getItem('playerVolume')) || 1);
   const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown', artwork: null, album: 'Unknown' });
   const [showVolume, setShowVolume] = useState(false);
   const [showEqualizer, setShowEqualizer] = useState(false);
@@ -69,10 +69,9 @@ function Player() {
     return () => audio.removeEventListener('ended', handleEnded);
   }, [repeat, queue]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXT') return;
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       switch (e.key) {
         case ' ':
           e.preventDefault();
@@ -85,10 +84,10 @@ function Player() {
           handlePreviousTrack();
           break;
         case 'ArrowUp':
-          setVolume((prev) => Math.min(prev + 0.1, 1));
+          setVolume(prev => Math.min(prev + 0.1, 1));
           break;
         case 'ArrowDown':
-          setVolume((prev) => Math.max(prev - 0.1, 0));
+          setVolume(prev => Math.max(prev - 0.1, 0));
           break;
       }
     };
@@ -147,8 +146,7 @@ function Player() {
     const nextSong = queue[nextIndex];
     if (nextSong) {
       const nextAudio = new Audio(URL.createObjectURL(fileMapRef.current.get(nextSong.id)));
-      await applyCrossfade(audioRef.current, nextAudio, 1000);
-      selectSong(nextSong.id);
+      await applyCrossfade(audioRef.current, nextAudio, () => selectSong(nextSong.id), 1000);
     }
   };
 
@@ -177,13 +175,13 @@ function Player() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-background/80 dark:bg-gray-900/80 backdrop-blur-sm p-2 sm:p-3 flex flex-col gap-2 z-50 shadow-md">
-      <div className="flex items-center gap-2 sm:gap-3 player-items">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         {/* Artwork (Mobile Hidden) */}
         <div className="hidden sm:flex items-center">
           {metadata.artwork ? (
             <img
-              src={URL.createObjectURL(new Blob([metadata.artwork.data], { type: metadata.artwork.format}))}
-              alt="art"
+              src={URL.createObjectURL(new Blob([metadata.artwork.data], { type: metadata.artwork.format }))}
+              alt="Album art"
               className="w-10 h-10 rounded sm:w-12 sm:h-12"
             />
           ) : (
@@ -194,7 +192,7 @@ function Player() {
         </div>
 
         {/* Track Info */}
-        <div className="flex-1 flex flex-col items-start">
+        <div className="flex-1 flex flex-col items-start min-w-0">
           <span className="font-semibold text-xs sm:text-sm truncate dark:text-white">{metadata.title}</span>
           <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{metadata.artist}</span>
           <div className="flex items-center gap-1 w-full mt-1">
@@ -206,6 +204,8 @@ function Player() {
               value={progress}
               onChange={handleSeek}
               className="flex-1 h-1 accent-primary touch-none rounded"
+              style={{ touchAction: 'none' }}
+              aria-label="Seek"
             />
             <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(duration)}</span>
           </div>
@@ -215,74 +215,76 @@ function Player() {
         <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={toggleShuffle}
-            className={`p-1.5 sm:p-2 rounded-full ${shuffle ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+            className={`p-2 rounded-full ${shuffle ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
             aria-label="Toggle shuffle"
           >
-            <Shuffle size={16} className="sm:w-4 sm:h-4" />
+            <Shuffle size={16} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={toggleRepeat}
-            className={`relative p-1.5 sm:p-2 rounded-full ${repeat !== 'off' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+            className={`relative p-2 rounded-full ${repeat !== 'off' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
             aria-label={`Repeat ${repeat}`}
           >
-            <Repeat size={16} className="sm:w-4 sm:h-4" />
-            {repeat === 'one' && <span className="absolute top-0 right-0 text-xs text-primary">1</span>}
+            <Repeat size={16} className="sm:w-5 sm:h-5" />
+            {repeat === 'one' && (
+              <span className="absolute bottom-0 right-0 text-[8px] bg-primary text-white rounded-full w-3 h-3 flex items-center justify-center">1</span>
+            )}
           </button>
           <button
             onClick={handlePreviousTrack}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Previous track"
           >
-            <SkipBack size={16} className="sm:w-4 sm:h-4" />
+            <SkipBack size={16} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={handlePlayPause}
-            className="p-1.5 sm:p-2 rounded-full bg-primary text-white hover:bg-secondary transition-colors"
+            className="p-2 rounded-full bg-primary text-white hover:bg-secondary transition-colors"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
-            {isPlaying ? <Pause size={20} className="sm:w-5 sm:h-5" /> : <Play size={20} className="sm:w-5 sm:h-5" />}
+            {isPlaying ? <Pause size=20 className="sm:w-6 sm:h-6" /> : <Play size=20 className="sm:w-6 sm:h-6" />}
           </button>
           <button
             onClick={handleNextTrack}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Next track"
           >
-            <SkipForward size={16} className="sm:w-4 sm:h-4" />
+            <SkipForward size={16} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={() => setShowEqualizer(!showEqualizer)}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:inline-flex"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:block"
             aria-label="Toggle equalizer"
           >
-            <Sliders size={16} className="sm:w-4 sm:h-4" />
+            <Sliders size={16} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={() => setShowNowPlaying(true)}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:inline-flex"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:block"
             aria-label="Now playing"
           >
-            <Info size={16} className="sm:w-4 sm:h-4" />
+            <Info size={16} className="sm:w-5 sm:h-5" />
           </button>
           <button
             onClick={() => setShowQueue(!showQueue)}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Toggle queue"
           >
-            <List size={16} className="sm:w-4 sm:h-4" />
+            <List size={16} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Volume Control */}
-        <div className="relative hidden sm:block">
+        <div className="relative">
           <button
             onClick={() => setShowVolume(!showVolume)}
-            className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Toggle volume"
           >
-            <Volume2 size={16} className="sm:w-4 sm:h-4" />
+            <Volume2 size={16} className="sm:w-5 sm:h-5" />
           </button>
           {showVolume && (
-            <div className="absolute bottom-12 right-0 w-20 bg-white dark:bg-gray-800 shadow-lg rounded p-2">
+            <div className="absolute bottom-12 right-0 w-20 bg-background dark:bg-gray-800 shadow-lg rounded p-2">
               <input
                 type="range"
                 min="0"
@@ -292,6 +294,7 @@ function Player() {
                 onChange={handleVolumeChange}
                 className="w-full h-1 accent-primary rounded-full touch-none"
                 orient="vertical"
+                aria-label="Volume"
               />
             </div>
           )}
@@ -300,10 +303,10 @@ function Player() {
         {/* Theme Toggle */}
         <button
           onClick={() => setDark(!dark)}
-          className="p-1.5 sm:p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-          aria-label="Toggle theme"
+          className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {dark ? <Sun size={16} className="sm:w-4 sm:h-4" /> : <Moon size={16} />}
+          {dark ? <Sun size={16} className="sm:w-5 sm:h-5" /> : <Moon size={16} className="sm:w-5 sm:h-5" />}
         </button>
       </div>
 
@@ -320,7 +323,7 @@ function Player() {
       {/* Popovers */}
       {showEqualizer && <Equalizer audioRef={audioRef} />}
       {showQueue && <QueueView />}
-        {showNowPlaying && <NowPlayingModal isOpen={showNowPlaying} onClose={() => setShowNowPlaying(false)} metadata={metadata} />}
+      <NowPlayingModal isOpen={showNowPlaying} onClose={() => setShowNowPlaying(false)} metadata={metadata} />
 
       <audio ref={audioRef} src={currentFile && URL.createObjectURL(currentFile)} onTimeUpdate={onTimeUpdate} />
     </div>
