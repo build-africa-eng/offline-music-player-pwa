@@ -2,95 +2,81 @@ import { useState, useEffect } from 'react';
 import MusicLibrary from './components/MusicLibrary';
 import Player from './components/Player';
 import Playlist from './components/Playlist';
-import { selectMusicDirectory } from './lib/fileSystem';
-import { addSong } from './lib/indexedDB';
-import { extractMetadata } from './lib/metadata';
+import { MusicProvider } from './context/MusicContext';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
-  const [currentFile, setCurrentFile] = useState(null);
-  const [error, setError] = useState(null);
   const [view, setView] = useState('library');
-
-  const handleSelectDirectory = async () => {
-    try {
-      setError(null);
-      const result = await selectMusicDirectory();
-      if (!result) {
-        setError('No directory selected or access denied.');
-        return;
-      }
-      const { files } = result;
-      for (const { file } of files) {
-        const metadata = await extractMetadata(file);
-        await addSong({ ...metadata, file });
-      }
-    } catch (err) {
-      console.error('Error selecting directory:', err);
-      setError('Failed to load music files. Please try again.');
-    }
-  };
-
-  const handleSongSelect = async (file) => {
-    try {
-      setError(null);
-      const metadata = await extractMetadata(file);
-      await addSong({ ...metadata, file });
-      setCurrentFile(file);
-    } catch (err) {
-      console.error('Error selecting song:', err);
-      setError('Failed to play song.');
-    }
-  };
+  const wallpapers = [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+  ];
+  const [background, setBackground] = useState(wallpapers[0]);
+  const [nextBackground, setNextBackground] = useState(null);
+  const [fade, setFade] = useState(false);
 
   useEffect(() => {
-    console.log('App.jsx mounted successfully');
+    // Preload images
+    wallpapers.forEach(url => {
+      const img = new Image();
+      img.src = url;
+    });
+
+    const interval = setInterval(() => {
+      setFade(true);
+      const next = wallpapers[Math.floor(Math.random() * wallpapers.length)];
+      setNextBackground(next);
+      setTimeout(() => {
+        setBackground(next);
+        setFade(false);
+        setNextBackground(null);
+      }, 700); // Match transition duration
+    }, 5000); // Every 5 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-text font-sans">
-      <header className="p-3 sm:p-4 bg-primary text-white shadow">
-        <h1 className="text-2xl sm:text-3xl font-bold">Offline Music Player</h1>
-      </header>
-      <main className="p-3 sm:p-4 max-w-4xl mx-auto">
-        <Player file={currentFile} onFileSelect={handleSongSelect} />
-        <div className="flex mb-3 sm:mb-4 space-x-2 overflow-x-auto">
-          <button
-            onClick={() => setView('library')}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${view === 'library' ? 'bg-primary text-white' : 'bg-background text-text hover:bg-secondary hover:text-white'}`}
-          >
-            Library
-          </button>
-          <button
-            onClick={() => setView('playlists')}
-            className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${view === 'playlists' ? 'bg-primary text-white' : 'bg-background text-text hover:bg-secondary hover:text-white'}`}
-          >
-            Playlists
-          </button>
+    <MusicProvider>
+      <div
+        className="min-h-screen bg-cover bg-center transition-opacity duration-700 ease-in-out"
+        style={{ backgroundImage: `url(${background})`, opacity: fade ? 0.3 : 1 }}
+      >
+        <div
+          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
+          style={{ backgroundImage: nextBackground ? `url(${nextBackground})` : 'none', opacity: fade ? 1 : 0 }}
+        />
+        <div className="absolute inset-0 bg-black/50 z-0" />
+        <div className="relative z-10 text-white p-3 sm:p-4">
+          <header className="bg-primary text-white shadow rounded-lg mb-3 sm:mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold p-3 sm:p-4">Offline Music Player</h1>
+          </header>
+          <main className="max-w-4xl mx-auto">
+            <Player />
+            <div className="flex mb-3 sm:mb-4 space-x-2 overflow-x-auto">
+              <button
+                onClick={() => setView('library')}
+                className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${view === 'library' ? 'bg-primary text-white' : 'bg-background/80 text-text hover:bg-secondary hover:text-white'}`}
+              >
+                Library
+              </button>
+              <button
+                onClick={() => setView('playlists')}
+                className={`px-3 sm:px-4 py-1 sm:py-2 rounded-lg text-sm sm:text-base transition-colors ${view === 'playlists' ? 'bg-primary text-white' : 'bg-background/80 text-text hover:bg-secondary hover:text-white'}`}
+              >
+                Playlists
+              </button>
+            </div>
+            {view === 'library' && <MusicLibrary />}
+            {view === 'playlists' && <Playlist />}
+          </main>
         </div>
-        {view === 'library' && (
-          <div className="flex-1">
-            <button
-              onClick={handleSelectDirectory}
-              className="mb-3 sm:mb-4 bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors"
-              aria-label="Select music folder"
-            >
-              Select Music Folder
-            </button>
-            {error && (
-              <p className="text-accent mb-3 sm:mb-4 text-xs sm:text-sm" role="alert">
-                {error}
-              </p>
-            )}
-            <MusicLibrary onSongSelect={handleSongSelect} />
-          </div>
-        )}
-        {view === 'playlists' && (
-          <div className="flex-1">
-            <Playlist onSongSelect={handleSongSelect} />
-          </div>
-        )}
-      </main>
-    </div>
+        <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
+      </div>
+    </MusicProvider>
   );
 }
 
