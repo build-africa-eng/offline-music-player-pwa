@@ -11,6 +11,9 @@ export function MusicProvider({ children }) {
   const [error, setError] = useState(null);
   const [songs, setSongs] = useState([]);
   const [playlists, setPlaylists] = useState([]);
+  const [queue, setQueue] = useState([]);
+  const [shuffle, setShuffle] = useState(() => JSON.parse(localStorage.getItem('playerShuffle')) || false);
+  const [repeat, setRepeat] = useState(() => localStorage.getItem('playerRepeat') || 'off');
   const fileMapRef = useRef(new Map());
 
   useEffect(() => {
@@ -19,6 +22,7 @@ export function MusicProvider({ children }) {
         const [songList, playlistList] = await Promise.all([getSongs(), getPlaylists()]);
         setSongs(songList);
         setPlaylists(playlistList);
+        setQueue(songList); // Initialize queue with library
       } catch (err) {
         console.error('Error loading data:', err);
         setError('Failed to load data.');
@@ -26,6 +30,14 @@ export function MusicProvider({ children }) {
     }
     loadData();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('playerShuffle', JSON.stringify(shuffle));
+  }, [shuffle]);
+
+  useEffect(() => {
+    localStorage.setItem('playerRepeat', repeat);
+  }, [repeat]);
 
   const handleSelectDirectory = async () => {
     try {
@@ -44,6 +56,7 @@ export function MusicProvider({ children }) {
       }
       const updatedSongs = await getSongs();
       setSongs(updatedSongs);
+      setQueue(updatedSongs); // Update queue
       toast.success('Music folder loaded!');
     } catch (err) {
       console.error('Error selecting directory:', err);
@@ -66,6 +79,7 @@ export function MusicProvider({ children }) {
       setCurrentFile(file);
       const updatedSongs = await getSongs();
       setSongs(updatedSongs);
+      setQueue(updatedSongs); // Update queue
       toast.success('Song uploaded!');
     } catch (err) {
       console.error('Error uploading song:', err);
@@ -113,6 +127,12 @@ export function MusicProvider({ children }) {
         error,
         songs,
         playlists,
+        queue,
+        setQueue,
+        shuffle,
+        setShuffle,
+        repeat,
+        setRepeat,
         handleSelectDirectory,
         handleUpload,
         selectSong,
