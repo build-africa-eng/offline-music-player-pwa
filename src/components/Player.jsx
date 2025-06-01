@@ -1,76 +1,144 @@
-import { useEffect, useRef, useState } from 'react'; import { useMusic } from '../context/MusicContext'; import { extractMetadata } from '../lib/metadata';
+import { useEffect, useRef, useState } from 'react';
+import { useMusic } from '../context/MusicContext';
+import { Play, Pause, Volume2, Upload, Moon, Sun } from 'lucide-react';
+import { extractMetadata } from '../lib/metadata';
 
-function Player() { const { currentFile, handleUpload } = useMusic(); const audioRef = useRef(null); const fileInputRef = useRef(null); const [isPlaying, setIsPlaying] = useState(false); const [progress, setProgress] = useState(0); const [duration, setDuration] = useState(0); const [volume, setVolume] = useState(() => { const savedVolume = localStorage.getItem('playerVolume'); return savedVolume !== null ? parseFloat(savedVolume) : 1; }); const [objectUrl, setObjectUrl] = useState(null); const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown' });
+function Player() {
+  const { currentFile, handleUpload } = useMusic();
+  const audioRef = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  // State management
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(() => {
+    const saved = localStorage.getItem('playerVolume');
+    return saved !== null ? parseFloat(saved) : 1;
+  });
+  const [metadata, setMetadata] = useState({ title: 'Unknown', artist: 'Unknown', artwork: null });
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
 
-useEffect(() => { if (currentFile) { const url = URL.createObjectURL(currentFile); setObjectUrl(url); extractMetadata(currentFile).then(data => { setMetadata({ title: data.title || currentFile.name, artist: data.artist || 'Unknown' }); }); return () => { URL.revokeObjectURL(url); }; } else { setObjectUrl(null); setMetadata({ title: 'Unknown', artist: 'Unknown' }); } }, [currentFile]);
+  // Theme toggle effect
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
 
-useEffect(() => { localStorage.setItem('playerVolume', volume); if (audioRef.current) { audioRef.current.volume = volume; } }, [volume]);
+  // Load metadata and reset audio when file changes
+  useEffect(() => {
+    if (!currentFile) {
+      setMetadata({ title: 'Unknown', artist: 'Unknown', artwork: null });
+      return;
+    }
+    extractMetadata(currentFile).then(data => {
+      setMetadata({
+        title: data.title || currentFile.name,
+        artist: data.artist || 'Unknown',
+        artwork: data.picture || null
+      });
+    });
+    audioRef.current.load();
+  }, [currentFile]);
 
-useEffect(() => { if (audioRef.current && objectUrl) { audioRef.current.load(); audioRef.current.play().catch(() => {}); setIsPlaying(true); } }, [objectUrl]);
+  // Update volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
+      localStorage.setItem('playerVolume', volume);
+    }
+  }, [volume]);
 
-const handlePlayPause = () => { const audio = audioRef.current; if (!audio) return; if (audio.paused) { audio.play().catch(err => console.error('Playback error:', err)); setIsPlaying(true); } else { audio.pause(); setIsPlaying(false); } };
+  // Event handlers
+  const onTimeUpdate = () => {
+    const audio = audioRef.current;
+    setProgress(audio.currentTime);
+    setDuration(audio.duration || 0);
+  };
 
-const handleTimeUpdate = () => { const audio = audioRef.current; if (audio) { setProgress(audio.currentTime); setDuration(audio.duration || 0); } };
+  const handlePlayPause = () => {
+    const audio = audioRef.current;
+    if (audio.paused) {
+      audio.play().then(() => setIsPlaying(true));
+    } else {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  };
 
-const handleSeek = (e) => { const audio = audioRef.current; if (audio) { audio.currentTime = e.target.value; setProgress(e.target.value); } };
+  const handleSeek = e => {
+    const audio = audioRef.current;
+    audio.currentTime = e.target.value;
+    setProgress(audio.currentTime);
+  };
 
-const handleVolumeChange = (e) => { const vol = parseFloat(e.target.value); setVolume(vol); };
+  const handleVolumeChange = e => setVolume(parseFloat(e.target.value));
 
-const formatTime = (seconds) => { if (!seconds || isNaN(seconds)) return '0:00'; const min = Math.floor(seconds / 60); const sec = Math.floor(seconds % 60).toString().padStart(2, '0'); return ${min}:${sec}; };
+  const formatTime = s => {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
+  };
 
-const handleFileInput = (e) => { const selectedFile = e.target.files[0]; if (selectedFile && selectedFile.type.startsWith('audio/')) { handleUpload(selectedFile); } };
+  return (
+    <div className="fixed bottom-0 left-0 right-0 bg-background/70 dark:bg-background-dark/70 backdrop-blur-md p-4 flex items-center space-x-4">
+      {/* Theme Toggle */}
+      <button onClick={() => setDark(!dark)} className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
+        {dark ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
 
-return ( <div className="p-3 sm:p-4 bg-background/80 text-text rounded-lg shadow-md mb-4 w-full max-w-lg mx-auto backdrop-blur-sm"> <h2 className="text-lg sm:text-xl font-semibold mb-2">Now Playing</h2> <div className="mb-3"> <button onClick={() => fileInputRef.current.click()} className="w-full bg-primary hover:bg-secondary text-white text-sm sm:text-base py-2 px-3 rounded-lg transition-colors" > Upload Audio File </button> <input
-type="file"
-ref={fileInputRef}
-onChange={handleFileInput}
-accept="audio/*"
-className="hidden"
-/> </div> {currentFile && objectUrl ? ( <> <audio ref={audioRef} src={objectUrl} onTimeUpdate={handleTimeUpdate} onEnded={() => setIsPlaying(false)} /> <div className="mb-2 text-xs sm:text-sm truncate"> <strong>{metadata.title}</strong> - {metadata.artist} </div>
+      {/* Upload Button */}
+      <button onClick={() => fileInputRef.current.click()} className="p-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-700">
+        <Upload size={20} />
+        <input type="file" accept="audio/*" className="hidden" ref={fileInputRef} onChange={e => handleUpload(e.target.files[0])} />
+      </button>
 
-<div className="flex items-center space-x-2 sm:space-x-4 flex-wrap gap-2">
-        <button
-          onClick={handlePlayPause}
-          className="bg-primary hover:bg-secondary text-white px-2 sm:px-3 py-1 rounded transition-colors text-sm sm:text-base"
-        >
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
+      {/* Artwork */}
+      {metadata.artwork ? (
+        <img src={URL.createObjectURL(new Blob([metadata.artwork.data], { type: metadata.artwork.format }))} alt="art" className="w-12 h-12 rounded" />
+      ) : (
+        <div className="w-12 h-12 bg-gray-200 dark:bg-gray-800 rounded flex items-center justify-center">
+          🎵
+        </div>
+      )}
 
+      {/* Track Info */}
+      <div className="flex-1 flex flex-col">
+        <span className="font-semibold truncate">{metadata.title}</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{metadata.artist}</span>
         <input
           type="range"
-          min="0"
+          min={0}
           max={duration || 0}
           value={progress}
           onChange={handleSeek}
-          className="flex-1 w-full"
-          aria-label="Seek"
+          className="w-full h-1 mt-1 accent-primary"
         />
-
-        <span className="text-xs w-14 sm:w-16 text-right">
-          {formatTime(progress)} / {formatTime(duration)}
-        </span>
       </div>
 
-      <div className="mt-2 flex items-center space-x-2">
-        <label className="text-xs sm:text-sm">Volume</label>
+      {/* Play/Pause */}
+      <button onClick={handlePlayPause} className="p-2 rounded-full bg-primary text-white hover:bg-secondary transition-colors">
+        {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+      </button>
+
+      {/* Volume Control */}
+      <div className="flex items-center space-x-1">
+        <Volume2 size={20} />
         <input
           type="range"
-          min="0"
-          max="1"
-          step="0.01"
+          min={0}
+          max={1}
+          step={0.01}
           value={volume}
           onChange={handleVolumeChange}
-          className="w-20 sm:w-32"
-          aria-label="Volume"
+          className="w-20 h-1 accent-primary"
         />
       </div>
-    </>
-  ) : (
-    <p className="text-text text-xs sm:text-sm">No song selected</p>
-  )}
-</div>
 
-); }
+      <audio ref={audioRef} src={currentFile && URL.createObjectURL(currentFile)} onTimeUpdate={onTimeUpdate} />
+    </div>
+  );
+}
 
 export default Player;
-
