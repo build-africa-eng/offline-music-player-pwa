@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-background: #ffffff;
+  --color-background: #121212; /* Dark fallback */
   --color-text: #000000;
   --color-primary: #1db954;
   --color-secondary: #1ed760;
