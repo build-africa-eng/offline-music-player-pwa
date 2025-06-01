@@ -14,26 +14,31 @@ function App() {
     'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
     'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
   ];
-  const [background, setBackground] = useState(wallpapers[0]);
+  const [currentBackground, setCurrentBackground] = useState(wallpapers[0]);
   const [nextBackground, setNextBackground] = useState(null);
-  const [fade, setFade] = useState(false);
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
     // Preload images
     wallpapers.forEach(url => {
       const img = new Image();
       img.src = url;
+      img.onload = () => console.log(`Preloaded: ${url}`);
     });
 
     const interval = setInterval(() => {
-      setFade(true);
       const next = wallpapers[Math.floor(Math.random() * wallpapers.length)];
-      setNextBackground(next);
-      setTimeout(() => {
-        setBackground(next);
-        setFade(false);
-        setNextBackground(null);
-      }, 700); // Match transition duration
+      const img = new Image();
+      img.src = next;
+      img.onload = () => {
+        setNextBackground(next);
+        setIsFading(true);
+        setTimeout(() => {
+          setCurrentBackground(next);
+          setIsFading(false);
+          setNextBackground(null);
+        }, 1000); // Match transition duration
+      };
     }, 5000); // Every 5 seconds
 
     return () => clearInterval(interval);
@@ -41,13 +46,14 @@ function App() {
 
   return (
     <MusicProvider>
-      <div
-        className="min-h-screen bg-cover bg-center transition-opacity duration-700 ease-in-out"
-        style={{ backgroundImage: `url(${background})`, opacity: fade ? 0.3 : 1 }}
-      >
+      <div className="min-h-screen relative">
         <div
-          className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-          style={{ backgroundImage: nextBackground ? `url(${nextBackground})` : 'none', opacity: fade ? 1 : 0 }}
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out"
+          style={{ backgroundImage: `url(${currentBackground})`, opacity: isFading ? 0 : 1 }}
+        />
+        <div
+          className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out"
+          style={{ backgroundImage: nextBackground ? `url(${nextBackground})` : 'none', opacity: isFading ? 1 : 0 }}
         />
         <div className="absolute inset-0 bg-black/50 z-0" />
         <div className="relative z-10 text-white p-3 sm:p-4">
