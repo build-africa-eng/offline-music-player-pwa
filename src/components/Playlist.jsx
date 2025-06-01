@@ -1,30 +1,144 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react'; import { selectMusicDirectory } from '../lib/fileSystem'; import { addSong, getSongs, getPlaylists, updatePlaylist } from '../lib/indexedDB'; import { extractMetadata } from '../lib/metadata'; import toast from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { useMusic } from '../context/MusicContext';
+import { addPlaylist, deletePlaylist, updatePlaylist, getSongById } from '../lib/indexedDB';
 
-const MusicContext = createContext();
+function Playlist() {
+  const { playlists, error, selectSong } = useMusic();
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+  const [playlistSongs, setPlaylistSongs] = useState([]);
 
-export function MusicProvider({ children }) { const [currentFile, setCurrentFile] = useState(null); const [error, setError] = useState(null); const [songs, setSongs] = useState([]); const [playlists, setPlaylists] = useState([]); const fileMapRef = useRef(new Map());
+  useEffect(() => {
+    async function loadPlaylistSongs() {
+      if (!selectedPlaylistId) {
+        setPlaylistSongs([]);
+        return;
+      }
+      try {
+        const playlist = playlists.find((p) => p.id === selectedPlaylistId);
+        if (playlist) {
+          const songs = await Promise.all(playlist.songIds.map(async (id) => await getSongById(id)));
+          setPlaylistSongs(songs.filter((song) => song));
+        }
+      } catch (err) {
+        console.error('Error loading playlist songs:', err);
+      }
+    }
+    loadPlaylistSongs();
+  }, [selectedPlaylistId, playlists]);
 
-useEffect(() => { async function loadData() { try { const [songList, playlistList] = await Promise.all([getSongs(), getPlaylists()]); setSongs(songList); setPlaylists(playlistList); for (const song of songList) { if (song.handle) { try { const file = await song.handle.getFile(); fileMapRef.current.set(song.id, file); } catch (err) { console.warn('Could not get file from handle:', err); } } } } catch (err) { console.error('Error loading data:', err); setError('Failed to load data.'); } } loadData(); }, []);
+  const handleCreatePlaylist = async (e) => {
+    e.preventDefault();
+    const trimmedName = newPlaylistName.trim();
+    if (!trimmedName || playlists.some((p) => p.name === trimmedName)) return;
+    try {
+      await addPlaylist({ name: trimmedName });
+      setNewPlaylistName('');
+    } catch (err) {
+      console.error('Error creating playlist:', err);
+    }
+  };
 
-const handleSelectDirectory = async () => { try { setError(null); const result = await selectMusicDirectory(); if (!result) { setError('No directory selected or access denied.'); return; } const { files } = result; for (const { file, handle } of files) { const metadata = await extractMetadata(file); await addSong({ ...metadata, handle }); fileMapRef.current.set(metadata.id, file); } const updatedSongs = await getSongs(); setSongs(updatedSongs); toast.success('Music folder loaded!'); } catch (err) { console.error('Error selecting directory:', err); setError('Failed to load music files.'); toast.error('Failed to load music files.'); } };
+  const handleDeletePlaylist = async (id) => {
+    try {
+      await deletePlaylist(id);
+      if (selectedPlaylistId === id) setSelectedPlaylistId(null);
+    } catch (err) {
+      console.error('Error deleting playlist:', err);
+    }
+  };
 
-const handleUpload = async (file) => { try { setError(null); const metadata = await extractMetadata(file); await addSong({ ...metadata }); fileMapRef.current.set(metadata.id, file); setCurrentFile(file); const updatedSongs = await getSongs(); setSongs(updatedSongs); toast.success('Song uploaded!'); } catch (err) { console.error('Error uploading song:', err); setError('Failed to upload song.'); toast.error('Failed to upload song.'); } };
+  const handleRemoveSong = async (songId) => {
+    try {
+      const playlist = playlists.find((p) => p.id === selectedPlaylistId);
+      if (playlist) {
+        playlist.songIds = playlist.songIds.filter((id) => id !== songId);
+        await updatePlaylist(playlist);
+        setPlaylistSongs(playlistSongs.filter((song) => song.id !== songId));
+      }
+    } catch (err) {
+      console.error('Error removing song from playlist:', err);
+    }
+  };
 
-const selectSong = async (songId) => { let file = fileMapRef.current.get(songId); if (!file) { const song = songs.find((s) => s.id === songId); if (song?.handle) { try { file = await song.handle.getFile(); fileMapRef.current.set(songId, file); } catch (err) { console.error('Failed to get file from handle:', err); } } }
+  const selectedPlaylist = playlists.find((p) => p.id === selectedPlaylistId);
 
-if (file) {
-  setCurrentFile(file);
-  setError(null);
-} else {
-  setError('Song file not found. Please reselect music folder.');
-  toast.error('Song file not found. Reselect music folder.');
+  return (
+    <div className="p-4 bg-gray-800/80 text-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4">Playlists</h2>
+      {error && <p className="text-red-400 mb-4">{error}</p>}
+      <form onSubmit={handleCreatePlaylist} className="mb-6">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPlaylistName}
+            onChange={(e) => setNewPlaylistName(e.target.value)}
+            placeholder="New playlist name"
+            className="flex-1 p-2 border border-gray-300 rounded bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-[#1db954]"
+          />
+          <button
+            type="submit"
+            className="bg-[#1db954] hover:bg-[#1ed760] text-white font-bold py-2 px-4 rounded-lg transition-colors"
+          >
+            Create
+          </button>
+        </div>
+      </form>
+      <div className="mb-6">
+        {playlists.length === 0 ? (
+          <p>No playlists yet. Create one above!</p>
+        ) : (
+          <ul className="space-y-2">
+            {playlists.map((playlist) => (
+              <li key={playlist.id} className="flex items-center justify-between">
+                <button
+                  onClick={() => setSelectedPlaylistId(playlist.id)}
+                  className={`text-left flex-1 p-2 rounded hover:bg-[#1db954] hover:text-white transition-colors ${
+                    selectedPlaylistId === playlist.id ? 'bg-[#1db954] text-white' : ''
+                  }`}
+                >
+                  {playlist.name} ({playlist.songIds.length} songs)
+                </button>
+                <button
+                  onClick={() => handleDeletePlaylist(playlist.id)}
+                  className="text-red-400 hover:text-red-600 transition-colors"
+                >
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {selectedPlaylistId && (
+        <div>
+          <h3 className="text-lg font-semibold mb-2">{selectedPlaylist?.name}</h3>
+          {playlistSongs.length === 0 ? (
+            <p>No songs in this playlist. Add from Music Library.</p>
+          ) : (
+            <ul className="space-y-2">
+              {playlistSongs.map((song) => (
+                <li key={song.id} className="flex items-center justify-between">
+                  <button
+                    onClick={() => selectSong(song.id)}
+                    className="text-left flex-1 hover:text-[#1db954] transition-colors py-1"
+                  >
+                    {song.title} - {song.artist}
+                  </button>
+                  <button
+                    onClick={() => handleRemoveSong(song.id)}
+                    className="text-red-400 hover:text-red-600 transition-colors"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-};
-
-const addToPlaylist = async (songId, playlistId) => { try { setError(null); const playlist = playlists.find((p) => p.id === playlistId); if (playlist && !playlist.songIds.includes(songId)) { const updatedPlaylist = { ...playlist, songIds: [...playlist.songIds, songId], }; await updatePlaylist(updatedPlaylist); const updatedPlaylists = await getPlaylists(); setPlaylists(updatedPlaylists); toast.success('Song added to playlist!'); } } catch (err) { console.error('Error adding song to playlist:', err); setError('Failed to add song to playlist.'); toast.error('Failed to add song to playlist.'); } };
-
-return ( <MusicContext.Provider value={{ currentFile, error, songs, playlists, handleSelectDirectory, handleUpload, selectSong, addToPlaylist, }} > {children} </MusicContext.Provider> ); }
-
-export function useMusic() { return useContext(MusicContext); }
-
+export default Playlist;
