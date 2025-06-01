@@ -37,6 +37,7 @@ export function MusicProvider({ children }) {
       }
       const { files } = result;
       for (const { file } of files) {
+        if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg)$/i)) continue;
         const metadata = await extractMetadata(file);
         await addSong({ ...metadata });
         fileMapRef.current.set(metadata.id, file);
@@ -52,9 +53,9 @@ export function MusicProvider({ children }) {
   };
 
   const handleUpload = async (file) => {
-    if (!file || !file.type.startsWith('audio/')) {
-      setError('Please select an audio file.');
-      toast.error('Please select an audio file.');
+    if (!file || (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg)$/i))) {
+      setError('Please select a valid audio file (.mp3, .wav, .ogg).');
+      toast.error('Please select a valid audio file.');
       return;
     }
     try {
