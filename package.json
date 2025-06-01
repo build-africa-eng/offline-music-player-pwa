@@ -24,6 +24,7 @@
     "postcss": "^8.4.31",
     "autoprefixer": "^10.4.16",
     "workbox-window": "^7.0.0",
+    "lucide-react": "^0.511.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.34.1",
     "prettier": "^3.0.3",
