@@ -37,9 +37,14 @@ function Player() {
     if (!currentFile) {
       setMetadata({ title: 'Unknown', artist: 'Unknown', artwork: null, album: 'Unknown' });
       setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
       return;
     }
 
+    console.log('currentFile changed:', currentFile.name, currentFile.type);
     extractMetadata(currentFile)
       .then(data => {
         setMetadata({
@@ -55,8 +60,30 @@ function Player() {
       });
 
     if (audioRef.current) {
-      audioRef.current.load();
+      try {
+        const src = URL.createObjectURL(currentFile);
+        console.log('Setting audio src:', src);
+        audioRef.current.src = src;
+        audioRef.current.load();
+        if (isPlaying) {
+          audioRef.current.play().catch(err => {
+            console.error('Auto-play error:', err);
+            toast.error(`Failed to auto-play: ${err.name} - ${err.message}`);
+            setIsPlaying(false);
+          });
+        }
+      } catch (err) {
+        console.error('Source error:', err);
+        toast.error('Failed to set audio source.');
+      }
     }
+
+    return () => {
+      if (audioRef.current?.src) {
+        URL.revokeObjectURL(audioRef.current.src);
+        audioRef.current.src = '';
+      }
+    };
   }, [currentFile]);
 
   useEffect(() => {
@@ -123,19 +150,38 @@ function Player() {
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !currentFile) {
+      toast.error('No song selected or audio not ready.');
+      console.log('handlePlayPause: audio=', audio, 'currentFile=', currentFile);
+      return;
+    }
 
     try {
       if (audio.paused) {
+        audio.src = URL.createObjectURL(currentFile);
+        audio.load();
+        console.log('Attempting to play:', audio.src);
         audio.play()
-          .then(() => setIsPlaying(true))
+          .then(() => {
+            setIsPlaying(true);
+            console.log('Playback started');
+          })
           .catch(err => {
-            console.error('Playback error:', err);
-            toast.error('Failed to play song.');
+            console.error('Playback error:', err.name, err.message);
+            toast.error(`Failed to play song: ${err.name} - ${err.message}`);
+            if (err.name === 'NotAllowedError') {
+              setTimeout(() => {
+                audio.play().catch(e => {
+                  console.error('Retry failed:', e);
+                  toast.error('Playback blocked. Try clicking Play again.');
+                });
+              }, 100);
+            }
           });
       } else {
         audio.pause();
         setIsPlaying(false);
+        console.log('Paused');
       }
     } catch (err) {
       console.error('Play/pause error:', err);
@@ -370,7 +416,15 @@ function Player() {
       {showQueue && <QueueView />}
       <NowPlayingModal isOpen={showNowPlaying} onClose={() => setShowNowPlaying(false)} metadata={metadata} />
 
-      <audio ref={audioRef} src={currentFile && URL.createObjectURL(currentFile)} onTimeUpdate={onTimeUpdate} />
+      <audio
+        ref={audioRef}
+        onTimeUpdate={onTimeUpdate}
+        onError={(e) => {
+          console.error('Audio load error:', e);
+          toast.error(`Audio failed to load: ${e.target.error?.message || 'Unknown error'}`);
+          setIsPlaying(false);
+        }}
+      />
     </div>
   );
 }
