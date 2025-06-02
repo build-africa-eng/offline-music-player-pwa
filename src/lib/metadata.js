@@ -1,4 +1,4 @@
-import * as mm from 'music-metadata-browser';
+import * as mm from 'music-metadata';
 
 /**
  * Extracts metadata from an audio file, including title, artist, album, and picture.
