@@ -1,5 +1,4 @@
 import * as mm from 'music-metadata-browser';
-import jsmediatags from 'jsmediatags';
 
 /**
  * Extracts metadata from an audio file, including title, artist, album, and picture.
@@ -25,7 +24,7 @@ export async function extractMetadata(file) {
       const pic = metadata.common.picture[0];
       picture = {
         data: pic.data,
-        format: pic.format
+        format: pic.format,
       };
     }
   } catch (err) {
@@ -35,14 +34,15 @@ export async function extractMetadata(file) {
   // Fallback to jsmediatags for picture only if missing
   if (!picture) {
     try {
+      const jsmediatags = await import('jsmediatags');
       await new Promise((resolve, reject) => {
-        new jsmediatags.Reader(file)
+        new jsmediatags.default.Reader(file)
           .read({
             onSuccess: (tag) => {
               if (tag.tags.picture) {
                 picture = {
                   data: tag.tags.picture.data,
-                  format: tag.tags.picture.format
+                  format: tag.tags.picture.format,
                 };
               }
               resolve();
@@ -50,7 +50,7 @@ export async function extractMetadata(file) {
             onError: (error) => {
               console.warn('jsmediatags fallback failed:', error);
               resolve();
-            }
+            },
           });
       });
     } catch (err) {
