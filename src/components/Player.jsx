@@ -9,6 +9,7 @@ import Equalizer from './Equalizer';
 import NowPlayingModal from './NowPlayingModal';
 import QueueView from './QueueView';
 import toast from 'react-hot-toast';
+import classNames from 'classnames';
 
 function Player() {
   const {
@@ -44,7 +45,6 @@ function Player() {
       return;
     }
 
-    console.log('currentFile changed:', currentFile.name, currentFile.type);
     extractMetadata(currentFile)
       .then(data => {
         setMetadata({
@@ -60,30 +60,16 @@ function Player() {
       });
 
     if (audioRef.current) {
-      try {
-        const src = URL.createObjectURL(currentFile);
-        console.log('Setting audio src:', src);
-        audioRef.current.src = src;
-        audioRef.current.load();
-        if (isPlaying) {
-          audioRef.current.play().catch(err => {
-            console.error('Auto-play error:', err);
-            toast.error(`Failed to auto-play: ${err.name} - ${err.message}`);
-            setIsPlaying(false);
-          });
-        }
-      } catch (err) {
-        console.error('Source error:', err);
-        toast.error('Failed to set audio source.');
+      audioRef.current.src = URL.createObjectURL(currentFile);
+      audioRef.current.load();
+      if (isPlaying) {
+        audioRef.current.play().catch(err => {
+          console.error('Auto-play error:', err);
+          toast.error(`Failed to auto-play: ${err.message}`);
+          setIsPlaying(false);
+        });
       }
     }
-
-    return () => {
-      if (audioRef.current?.src) {
-        URL.revokeObjectURL(audioRef.current.src);
-        audioRef.current.src = '';
-      }
-    };
   }, [currentFile]);
 
   useEffect(() => {
@@ -101,7 +87,7 @@ function Player() {
       if (repeat === 'one') {
         audio.currentTime = 0;
         audio.play().catch(err => {
-          console.error('Playback error:', err);
+          console.error('Replay error:', err);
           toast.error('Failed to replay song.');
         });
       } else {
@@ -152,40 +138,19 @@ function Player() {
     const audio = audioRef.current;
     if (!audio || !currentFile) {
       toast.error('No song selected or audio not ready.');
-      console.log('handlePlayPause: audio=', audio, 'currentFile=', currentFile);
       return;
     }
 
-    try {
-      if (audio.paused) {
-        audio.src = URL.createObjectURL(currentFile);
-        audio.load();
-        console.log('Attempting to play:', audio.src);
-        audio.play()
-          .then(() => {
-            setIsPlaying(true);
-            console.log('Playback started');
-          })
-          .catch(err => {
-            console.error('Playback error:', err.name, err.message);
-            toast.error(`Failed to play song: ${err.name} - ${err.message}`);
-            if (err.name === 'NotAllowedError') {
-              setTimeout(() => {
-                audio.play().catch(e => {
-                  console.error('Retry failed:', e);
-                  toast.error('Playback blocked. Try clicking Play again.');
-                });
-              }, 100);
-            }
-          });
-      } else {
-        audio.pause();
-        setIsPlaying(false);
-        console.log('Paused');
-      }
-    } catch (err) {
-      console.error('Play/pause error:', err);
-      toast.error('Playback error.');
+    if (audio.paused) {
+      audio.play()
+        .then(() => setIsPlaying(true))
+        .catch(err => {
+          console.error('Playback error:', err);
+          toast.error(`Failed to play song: ${err.message}`);
+        });
+    } else {
+      audio.pause();
+      setIsPlaying(false);
     }
   };
 
@@ -264,150 +229,156 @@ function Player() {
     return `${m}:${sec}`;
   };
 
+  const artSrc = metadata.artwork
+    ? URL.createObjectURL(new Blob([metadata.artwork.data], { type: metadata.artwork.format }))
+    : '/logo.png'; // Fallback to logo if no artwork
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-background/80 dark:bg-gray-900/80 backdrop-blur-sm p-2 sm:p-3 flex flex-col gap-2 z-50 shadow-md">
-      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-        {/* Artwork (Mobile Hidden) */}
-        <div className="hidden sm:flex items-center">
-          {metadata.artwork ? (
-            <img
-              src={URL.createObjectURL(new Blob([metadata.artwork.data], { type: metadata.artwork.format }))}
-              alt="Album art"
-              className="w-10 h-10 rounded sm:w-12 sm:h-12"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-sm sm:w-12 sm:h-12">
-              🎶
-            </div>
-          )}
+    <div className="fixed bottom-0 left-0 right-0 bg-background/80 dark:bg-zinc-900/80 shadow-lg z-50">
+      {/* Main Player Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-md transition-all">
+        {/* Artwork */}
+        <div className="flex-shrink-0">
+          <img
+            src={artSrc}
+            alt={metadata.title === 'Unknown' ? 'App Logo' : `${metadata.title} artwork`}
+            className="w-12 h-12 rounded-2xl object-cover shadow-md"
+            onError={(e) => {
+              console.error('Artwork/Logo load error:', e);
+              e.target.src = '/logo.png';
+            }}
+          />
         </div>
 
-        {/* Track Info */}
-        <div className="flex-1 flex flex-col items-start min-w-0">
-          <span className="font-semibold text-xs sm:text-sm truncate dark:text-white">{metadata.title}</span>
-          <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{metadata.artist}</span>
-          <div className="flex items-center gap-1 w-full mt-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(progress)}</span>
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              value={progress}
-              onChange={handleSeek}
-              className="flex-1 h-1 accent-primary touch-none rounded"
-              style={{ touchAction: 'none' }}
-              aria-label="Seek track"
-            />
-            <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(duration)}</span>
+        {/* Track Info + Seek */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-medium text-white truncate">{metadata.title}</h3>
+              <p className="text-sm text-muted-foreground truncate">{metadata.artist}</p>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={duration || 0}
+            value={progress}
+            onChange={handleSeek}
+            className="w-full h-2 rounded-full appearance-none bg-gray-300 dark:bg-gray-700 accent-primary"
+            style={{
+              background: `linear-gradient(to right, #1db954 ${((progress / duration) * 100 || 0)}%, #ccc ${((progress / duration) * 100 || 0)}%)`
+            }}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{formatTime(progress)}</span>
+            <span>{formatTime(duration)}</span>
           </div>
         </div>
 
-        {/* Playback Controls */}
-        <div className="flex items-center gap-1 sm:gap-2">
+        {/* Controls */}
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={toggleShuffle}
-            className={`p-2 rounded-full ${shuffle ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+            className={classNames(
+              'p-2 rounded-full text-muted-foreground hover:text-primary transition-all',
+              shuffle && 'text-primary ring-2 ring-primary ring-offset-2 ring-offset-background'
+            )}
             aria-label="Toggle shuffle"
           >
-            <Shuffle size={16} className="sm:w-5 sm:h-5" />
+            <Shuffle size={24} />
           </button>
           <button
             onClick={toggleRepeat}
-            className={`relative p-2 rounded-full ${repeat !== 'off' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'} hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`}
+            className={classNames(
+              'p-2 rounded-full text-muted-foreground hover:text-primary transition-all',
+              repeat !== 'off' && 'text-primary ring-2 ring-primary ring-offset-2 ring-offset-background animate-spin'
+            )}
             aria-label={`Repeat ${repeat}`}
           >
-            <Repeat size={16} className="sm:w-5 sm:h-5" />
-            {repeat === 'one' && (
-              <span className="absolute bottom-0 right-0 text-[8px] bg-primary text-white rounded-full w-3 h-3 flex items-center justify-center">1</span>
-            )}
+            <Repeat size={24} />
+            {repeat === 'one' && <span className="absolute -top-1 -right-1 text-[10px] bg-primary text-white rounded-full w-4 h-4 flex items-center justify-center">1</span>}
           </button>
           <button
             onClick={handlePreviousTrack}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-muted-foreground hover:text-primary hover:scale-105 transition-all"
             aria-label="Previous track"
           >
-            <SkipBack size={16} className="sm:w-5 sm:h-5" />
+            <SkipBack size={24} />
           </button>
           <button
             onClick={handlePlayPause}
-            className="p-2 rounded-full bg-primary text-white hover:bg-secondary transition-colors"
+            className="p-3 rounded-full bg-primary text-white hover:bg-green-600 hover:ring-2 hover:ring-primary hover:ring-offset-2 hover:ring-offset-background transition-all shadow-md"
             aria-label={isPlaying ? 'Pause' : 'Play'}
           >
-            {isPlaying ? <Pause size={20} className="sm:w-6 sm:h-6" /> : <Play size={20} className="sm:w-6 sm:h-6" />}
+            {isPlaying ? <Pause size={28} /> : <Play size={28} />}
           </button>
           <button
             onClick={handleNextTrack}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-muted-foreground hover:text-primary hover:scale-105 transition-all"
             aria-label="Next track"
           >
-            <SkipForward size={16} className="sm:w-5 sm:h-5" />
+            <SkipForward size={24} />
           </button>
           <button
             onClick={() => setShowEqualizer(!showEqualizer)}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:block"
+            className="p-2 rounded-full text-muted-foreground hover:text-primary transition-all hidden sm:block"
             aria-label="Toggle equalizer"
           >
-            <Sliders size={16} className="sm:w-5 sm:h-5" />
+            <Sliders size={24} />
           </button>
           <button
             onClick={() => setShowNowPlaying(true)}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors hidden sm:block"
+            className="p-2 rounded-full text-muted-foreground hover:text-primary transition-all hidden sm:block"
             aria-label="Now playing"
           >
-            <Info size={16} className="sm:w-5 sm:h-5" />
+            <Info size={24} />
           </button>
           <button
             onClick={() => setShowQueue(!showQueue)}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="p-2 rounded-full text-muted-foreground hover:text-primary transition-all"
             aria-label="Toggle queue"
           >
-            <List size={16} className="sm:w-5 sm:h-5" />
+            <List size={24} />
           </button>
         </div>
+      </div>
 
-        {/* Volume Control */}
-        <div className="relative">
-          <button
-            onClick={() => setShowVolume(!showVolume)}
-            className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            aria-label="Toggle volume"
-          >
-            <Volume2 size={16} className="sm:w-5 sm:h-5" />
-          </button>
-          {showVolume && (
-            <div className="absolute bottom-12 right-0 w-20 bg-background dark:bg-gray-800 shadow-lg rounded p-2">
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="w-full h-1 accent-primary rounded-full touch-none"
-                orient="vertical"
-                aria-label="Adjust volume"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Theme Toggle */}
+      {/* Volume Control */}
+      <div className="flex items-center justify-end px-4 py-2 gap-2">
+        <button
+          onClick={() => setShowVolume(!showVolume)}
+          className="p-2 rounded-full text-muted-foreground hover:text-primary transition-all"
+          aria-label="Toggle volume"
+        >
+          <Volume2 size={24} />
+        </button>
+        {showVolume && (
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-20 h-1 rounded-full appearance-none bg-gray-300 dark:bg-gray-700 accent-primary"
+          />
+        )}
         <button
           onClick={() => setDark(!dark)}
-          className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-full text-muted-foreground hover:text-primary transition-all"
           aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {dark ? <Sun size={16} className="sm:w-5 sm:h-5" /> : <Moon size={16} className="sm:w-5 sm:h-5" />}
+          {dark ? <Sun size={24} /> : <Moon size={24} />}
         </button>
       </div>
 
       {/* Waveform (Hidden on Mobile) */}
-      <div className="hidden sm:block">
-        <WaveformVisualizer audioFile={currentFile} />
+      <div className="hidden sm:block px-4 py-2">
+        <WaveformVisualizer audioFile={currentFile} className="w-full h-16 bg-gray-200 rounded-lg" />
       </div>
 
       {/* Lyrics (Hidden on Mobile) */}
-      <div className="hidden sm:block">
+      <div className="hidden sm:block px-4 py-2">
         <LyricsDisplay key={currentFile?.id} songId={currentFile?.id} title={metadata.title} artist={metadata.artist} />
       </div>
 
@@ -416,15 +387,7 @@ function Player() {
       {showQueue && <QueueView />}
       <NowPlayingModal isOpen={showNowPlaying} onClose={() => setShowNowPlaying(false)} metadata={metadata} />
 
-      <audio
-        ref={audioRef}
-        onTimeUpdate={onTimeUpdate}
-        onError={(e) => {
-          console.error('Audio load error:', e);
-          toast.error(`Audio failed to load: ${e.target.error?.message || 'Unknown error'}`);
-          setIsPlaying(false);
-        }}
-      />
+      <audio ref={audioRef} onTimeUpdate={onTimeUpdate} />
     </div>
   );
 }
