@@ -38,7 +38,7 @@ function App() {
         setIsFading(false);
         setNextBackground(null);
       }, 500);
-    }, 3600000); // 30s interval
+    }, 30000); // 30s interval
 
     return () => clearInterval(interval);
   }, []);
