@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { selectMusicDirectory } from '../lib/fileSystem';
-import { addSong, getSongs, getPlaylists, updatePlaylist } from '../lib/indexedDB';
+import { addSong, getSongs, getPlaylists, updatePlaylist, addFile, getFile } from '../lib/indexedDB';
 import { extractMetadata } from '../lib/metadata';
 import toast from 'react-hot-toast';
 
@@ -14,7 +14,7 @@ export function MusicProvider({ children }) {
   const [queue, setQueue] = useState([]);
   const [shuffle, setShuffle] = useState(() => JSON.parse(localStorage.getItem('playerShuffle')) || false);
   const [repeat, setRepeat] = useState(() => localStorage.getItem('playerRepeat') || 'off');
-  const fileMapRef = useRef(new Map());
+  const fileMapRef = useRef(new Map()); // Temporary storage during session
 
   useEffect(() => {
     async function loadData() {
@@ -23,6 +23,14 @@ export function MusicProvider({ children }) {
         setSongs(songList);
         setPlaylists(playlistList);
         setQueue(songList);
+
+        // Restore files to fileMapRef from IndexedDB
+        for (const song of songList) {
+          const fileData = await getFile(song.id);
+          if (fileData?.blob) {
+            fileMapRef.current.set(song.id, fileData.blob);
+          }
+        }
       } catch (err) {
         console.error('Error loading data:', err);
         setError('Failed to load data.');
@@ -50,9 +58,11 @@ export function MusicProvider({ children }) {
       }
       const { files } = result;
       for (const { file } of files) {
-        if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg)$/i)) continue;
+        if (!file.type.startsWith('audio/')) continue; // Only process audio files
         const metadata = await extractMetadata(file);
-        await addSong({ ...metadata });
+        const songData = { ...metadata };
+        await addSong(songData);
+        await addFile(metadata.id, file); // Persist file to IndexedDB
         fileMapRef.current.set(metadata.id, file);
       }
       const updatedSongs = await getSongs();
@@ -67,17 +77,19 @@ export function MusicProvider({ children }) {
   };
 
   const handleUpload = async (file) => {
-    if (!file || (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg)$/i))) {
-      setError('Please select a valid audio file (.mp3, .wav, .ogg).');
+    if (!file || !file.type.startsWith('audio/')) {
+      setError('Please select a valid audio file.');
       toast.error('Please select a valid audio file.');
       return;
     }
     try {
       setError(null);
       const metadata = await extractMetadata(file);
-      await addSong({ ...metadata });
+      const songData = { ...metadata };
+      await addSong(songData);
+      await addFile(metadata.id, file); // Persist file to IndexedDB
       fileMapRef.current.set(metadata.id, file);
-      setCurrentFile(file);
+      setCurrentFile(songData);
       const updatedSongs = await getSongs();
       setSongs(updatedSongs);
       setQueue(updatedSongs);
@@ -89,14 +101,29 @@ export function MusicProvider({ children }) {
     }
   };
 
-  const selectSong = (songId) => {
-    const file = fileMapRef.current.get(songId);
-    if (file) {
-      setCurrentFile(file);
-      setError(null);
-    } else {
-      setError('Song file not found. Please reselect music folder.');
-      toast.error('Song file not found. Reselect music folder.');
+  const selectSong = async (songId) => {
+    try {
+      let file = fileMapRef.current.get(songId);
+      if (!file) {
+        // Try to restore from IndexedDB
+        const fileData = await getFile(songId);
+        if (fileData?.blob) {
+          fileMapRef.current.set(songId, fileData.blob);
+          file = fileData.blob;
+        }
+      }
+      if (file) {
+        const song = songs.find(s => s.id === songId);
+        setCurrentFile(song);
+        setError(null);
+      } else {
+        setError('Song file not found. Please reselect music folder.');
+        toast.error('Song file not found. Reselect music folder.');
+      }
+    } catch (err) {
+      console.error('Error selecting song:', err);
+      setError('Failed to select song.');
+      toast.error('Failed to select song.');
     }
   };
 
