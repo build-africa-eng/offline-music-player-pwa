@@ -24,7 +24,6 @@ export function MusicProvider({ children }) {
         setPlaylists(playlistList);
         setQueue(songList);
 
-        // Restore files to fileMapRef from IndexedDB
         for (const song of songList) {
           const fileData = await getFile(song.id);
           if (fileData?.blob) {
@@ -48,6 +47,12 @@ export function MusicProvider({ children }) {
     localStorage.setItem('playerRepeat', repeat);
   }, [repeat]);
 
+  const isAudioFile = (file) => {
+    const hasValidType = file?.type?.startsWith('audio/');
+    const hasExtension = /\.[a-z0-9]+$/i.test(file?.name || '');
+    return hasValidType || hasExtension;
+  };
+
   const handleSelectDirectory = async () => {
     try {
       setError(null);
@@ -58,11 +63,11 @@ export function MusicProvider({ children }) {
       }
       const { files } = result;
       for (const { file } of files) {
-        if (!file.type.startsWith('audio/')) continue; // Only process audio files
+        if (!isAudioFile(file)) continue;
         const metadata = await extractMetadata(file);
         const songData = { ...metadata };
         await addSong(songData);
-        await addFile(metadata.id, file); // Persist file to IndexedDB
+        await addFile(metadata.id, file);
         fileMapRef.current.set(metadata.id, file);
       }
       const updatedSongs = await getSongs();
@@ -77,45 +82,40 @@ export function MusicProvider({ children }) {
   };
 
   const handleUpload = async (file) => {
-  const validExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a'];
-  const hasValidType = file?.type?.startsWith('audio/');
-  const hasValidExt = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+    if (!file || !isAudioFile(file)) {
+      console.error('Unsupported file type:', file?.type, file?.name);
+      setError('Unsupported file type. Please upload a valid audio file.');
+      toast.error('Unsupported file type. Please upload a valid audio file.');
+      return;
+    }
 
-  if (!file || (!hasValidType && !hasValidExt)) {
-    console.error('Unsupported file type:', file?.type, file?.name);
-    setError('Unsupported file type. Please upload a valid audio file.');
-    toast.error('Unsupported file type. Please upload a valid audio file.');
-    return;
-  }
+    try {
+      setError(null);
+      console.log('Uploading file:', file.name, 'type:', file.type);
 
-  try {
-    setError(null);
-    console.log('Uploading file:', file.name, 'type:', file.type); // Debug log
+      const metadata = await extractMetadata(file);
+      const songData = { ...metadata };
 
-    const metadata = await extractMetadata(file);
-    const songData = { ...metadata };
+      await addSong(songData);
+      await addFile(metadata.id, file);
+      fileMapRef.current.set(metadata.id, file);
+      setCurrentFile(songData);
 
-    await addSong(songData);
-    await addFile(metadata.id, file); // Persist file to IndexedDB
-    fileMapRef.current.set(metadata.id, file);
-    setCurrentFile(songData);
-
-    const updatedSongs = await getSongs();
-    setSongs(updatedSongs);
-    setQueue(updatedSongs);
-    toast.success('Song uploaded!');
-  } catch (err) {
-    console.error('Error uploading song:', err);
-    setError('Failed to upload song.');
-    toast.error('Failed to upload song.');
-  }
-};
+      const updatedSongs = await getSongs();
+      setSongs(updatedSongs);
+      setQueue(updatedSongs);
+      toast.success('Song uploaded!');
+    } catch (err) {
+      console.error('Error uploading song:', err);
+      setError('Failed to upload song.');
+      toast.error('Failed to upload song.');
+    }
+  };
 
   const selectSong = async (songId) => {
     try {
       let file = fileMapRef.current.get(songId);
       if (!file) {
-        // Try to restore from IndexedDB
         const fileData = await getFile(songId);
         if (fileData?.blob) {
           fileMapRef.current.set(songId, fileData.blob);
@@ -123,7 +123,7 @@ export function MusicProvider({ children }) {
         }
       }
       if (file) {
-        const song = songs.find(s => s.id === songId);
+        const song = songs.find((s) => s.id === songId);
         setCurrentFile(song);
         setError(null);
       } else {
