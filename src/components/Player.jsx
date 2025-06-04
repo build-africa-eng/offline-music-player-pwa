@@ -7,8 +7,10 @@ import VolumeControl from './VolumeControl';
 import ThemeToggle from './ThemeToggle';
 import PlayerFooter from './PlayerFooter';
 import Popups from './Popups';
+import NowPlayingBar from './NowPlayingBar';
+import { Play, Pause } from 'lucide-react';
 
-function Player({ queue, currentFile, fileMap, selectSong, waveform }) {
+function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
   const [showEqualizer, setShowEqualizer] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -32,11 +34,9 @@ function Player({ queue, currentFile, fileMap, selectSong, waveform }) {
     handleNextTrack,
     handlePreviousTrack,
     handleSeek,
-  } = usePlayerLogic({ queue, currentFile, fileMapRef: fileMap, selectSong });
+  } = usePlayerLogic({ queue, currentFile, fileMapRef, selectSong });
 
   if (!currentFile) return null;
-
-  const metadata = currentFile;
 
   return (
     <div className="relative flex flex-col items-center justify-between gap-4 w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 py-4">
@@ -50,9 +50,9 @@ function Player({ queue, currentFile, fileMap, selectSong, waveform }) {
         />
       </div>
       <div className="flex flex-col items-center gap-4">
-        <Artwork artwork={metadata.artwork} title={metadata.title} />
+        <Artwork artwork={currentFile.artwork} title={currentFile.title} />
         <TrackInfo
-          metadata={metadata}
+          metadata={currentFile}
           progress={progress}
           duration={duration}
           onSeek={handleSeek}
@@ -74,9 +74,8 @@ function Player({ queue, currentFile, fileMap, selectSong, waveform }) {
         />
       </div>
       <PlayerFooter
-        currentId={currentFile.id}
         songId={currentFile.id}
-        metadata={metadata}
+        metadata={currentFile}
         progress={progress}
         duration={duration}
         waveform={waveform}
@@ -91,23 +90,14 @@ function Player({ queue, currentFile, fileMap, selectSong, waveform }) {
         audioRef={audioRef}
         queue={queue}
         currentFile={currentFile}
-        metadata={metadata}
+        metadata={currentFile}
       />
       {isPlaying && (
-        <div className="fixed bottom-10 w-11/12 mx-auto bg-gray-700 rounded-full shadow-lg flex items-center justify-between px-4 py-2 sm:hidden z-50">
-          <Artwork artwork={metadata.artwork} title={metadata.title} className="w-8 h-12 rounded" />
-          <div className="flex-1 px-2 truncate">
-            <h3 className="text-sm font-medium text-white">{metadata.title}</h3>
-            <p className="text-xs text-white">{metadata.artist}</p>
-          </div>
-          <button
-            onClick={handlePlayPause}
-            className="p-2 rounded-full bg-primary text-white hover:bg-green-600 transition-all"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-          </button>
-        </div>
+        <NowPlayingBar
+          metadata={currentFile}
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+        />
       )}
     </div>
   );
