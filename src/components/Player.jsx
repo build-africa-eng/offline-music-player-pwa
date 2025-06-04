@@ -7,7 +7,7 @@ import VolumeControl from './VolumeControl';
 import ThemeToggle from './ThemeToggle';
 import PlayerFooter from './PlayerFooter';
 import Popups from './Popups';
-import NowPlayingBar from './NowPlayingBar';
+import NowPlayingModal from './NowPlayingModal';
 import { Play, Pause } from 'lucide-react';
 
 function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
