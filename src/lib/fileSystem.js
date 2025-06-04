@@ -1,4 +1,10 @@
-export async function loadFiles() {
+// src/lib/fileSystem.js
+
+/**
+ * Opens a file input dialog to allow the user to select multiple audio files.
+ * Returns an array of file metadata objects and a fileMap for in-memory access.
+ */
+export async function selectMusicDirectory() {
   const files = [];
   const fileMap = new Map();
   const queue = [];
@@ -6,7 +12,7 @@ export async function loadFiles() {
   const input = document.createElement('input');
   input.type = 'file';
   input.multiple = true;
-  input.accept = 'audio/*'; // Changed from specific formats to all audio formats
+  input.accept = 'audio/*';
 
   return new Promise((resolve, reject) => {
     input.onchange = async () => {
@@ -16,7 +22,6 @@ export async function loadFiles() {
       }
 
       for (const file of input.files) {
-        // Optional: Validate file type if needed (but let's remove strict checks)
         if (!file.type.startsWith('audio/')) {
           console.warn(`Skipping non-audio file: ${file.name}`);
           continue;
@@ -28,9 +33,8 @@ export async function loadFiles() {
           id,
           name: file.name,
           type: file.type,
-          title: file.name.split('.').slice(0, -1).join('.'), // Extract title from filename
-          artist: 'Unknown', // Placeholder: Could extract from metadata
-          // Add more metadata if needed
+          title: file.name.split('.').slice(0, -1).join('.'),
+          artist: 'Unknown', // Could later be improved with metadata extraction
         });
       }
 
@@ -50,6 +54,9 @@ export async function loadFiles() {
   });
 }
 
+/**
+ * Retrieves a file by ID from the provided fileMap.
+ */
 export async function getFile(id, fileMap) {
   return fileMap.get(id);
 }
