@@ -1,5 +1,5 @@
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Sliders, List, Info } from 'lucide-react';
-import classNames from 'classNames';
+import classNames from 'classnames'; // Fixed import from 'classNames' to 'classnames'
 
 function PlayerControls({
   isPlaying,
