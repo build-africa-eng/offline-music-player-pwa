@@ -36,8 +36,6 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
     handleSeek,
   } = usePlayerLogic({ queue, currentFile, fileMapRef, selectSong });
 
-  if (!currentFile) return null;
-
   return (
     <div className="relative flex flex-col items-center justify-between gap-4 w-full min-h-screen bg-gray-50 dark:bg-gray-900 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between w-full max-w-4xl mx-auto mt-4">
@@ -49,55 +47,65 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
           setIsMuted={setIsMuted}
         />
       </div>
-      <div className="flex flex-col items-center gap-4">
-        <Artwork artwork={currentFile.artwork} title={currentFile.title} />
-        <TrackInfo
-          metadata={currentFile}
-          progress={progress}
-          duration={duration}
-          onSeek={handleSeek}
-        />
-        <PlayerControls
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onNext={handleNextTrack}
-          onPrev={handlePreviousTrack}
-          shuffle={shuffle}
-          setShuffle={setShuffle}
-          repeat={repeat}
-          setRepeat={setRepeat}
-          crossfadeEnabled={crossfadeEnabled}
-          setCrossfadeEnabled={setCrossfadeEnabled}
-          setShowEqualizer={setShowEqualizer}
-          setShowQueue={setShowQueue}
-          setShowInfo={setShowInfo}
-        />
-      </div>
-      <PlayerFooter
-        songId={currentFile.id}
-        metadata={currentFile}
-        progress={progress}
-        duration={duration}
-        waveform={waveform}
-      />
-      <Popups
-        showEqualizer={showEqualizer}
-        setShowEqualizer={setShowEqualizer}
-        showQueue={showQueue}
-        setShowQueue={setShowQueue}
-        showInfo={showInfo}
-        setShowInfo={setShowInfo}
-        audioRef={audioRef}
-        queue={queue}
-        currentFile={currentFile}
-        metadata={currentFile}
-      />
-      {isPlaying && (
-        <NowPlayingBar
-          metadata={currentFile}
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-        />
+
+      {currentFile ? (
+        <>
+          <div className="flex flex-col items-center gap-4">
+            <Artwork artwork={currentFile.artwork} title={currentFile.title} />
+            <TrackInfo
+              metadata={currentFile}
+              progress={progress}
+              duration={duration}
+              onSeek={handleSeek}
+            />
+            <PlayerControls
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
+              onNext={handleNextTrack}
+              onPrev={handlePreviousTrack}
+              shuffle={shuffle}
+              setShuffle={setShuffle}
+              repeat={repeat}
+              setRepeat={setRepeat}
+              crossfadeEnabled={crossfadeEnabled}
+              setCrossfadeEnabled={setCrossfadeEnabled}
+              setShowEqualizer={setShowEqualizer}
+              setShowQueue={setShowQueue}
+              setShowInfo={setShowInfo}
+            />
+          </div>
+          <PlayerFooter
+            songId={currentFile.id}
+            metadata={currentFile}
+            progress={progress}
+            duration={duration}
+            waveform={waveform}
+          />
+          <Popups
+            showEqualizer={showEqualizer}
+            setShowEqualizer={setShowEqualizer}
+            showQueue={showQueue}
+            setShowQueue={setShowQueue}
+            showInfo={showInfo}
+            setShowInfo={setShowInfo}
+            audioRef={audioRef}
+            queue={queue}
+            currentFile={currentFile}
+            metadata={currentFile}
+          />
+          {isPlaying && (
+            <NowPlayingBar
+              metadata={currentFile}
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
+            />
+          )}
+        </>
+      ) : (
+        // Fallback UI when no track is selected
+        <div className="w-full text-center py-20 text-gray-500 dark:text-gray-400">
+          <p className="text-lg font-medium">Select a song to begin playing 🎶</p>
+        </div>
       )}
     </div>
   );
