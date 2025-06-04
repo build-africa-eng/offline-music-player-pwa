@@ -9,23 +9,20 @@ function UploadComponent() {
   const folderInputRef = useRef(null);
 
   const isAudioFile = (file) => {
-    const validExtensions = [
-      'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'aiff', 'alac', 'opus', 'amr'
-    ];
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    const hasValidExt = validExtensions.includes(extension);
+    const audioExts = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
     const hasValidType = file?.type?.startsWith('audio/');
-    return hasValidExt || hasValidType;
+    const hasValidExt = audioExts.some(ext => file.name.toLowerCase().endsWith(ext));
+    return hasValidType || hasValidExt;
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) {
       toast.error('No file selected.');
     } else if (!isAudioFile(file)) {
-      toast.error('Unsupported file type. Please upload an audio file.');
+      toast.error('Unsupported file type. Please upload a valid audio file.');
     } else {
-      handleUpload(file);
+      await handleUpload(file);
     }
     e.target.value = '';
   };
@@ -58,6 +55,7 @@ function UploadComponent() {
         </button>
         <input
           type="file"
+          accept="*/*"
           className="hidden"
           ref={fileInputRef}
           onChange={handleFileChange}
@@ -71,6 +69,7 @@ function UploadComponent() {
         </button>
         <input
           type="file"
+          accept="*/*"
           className="hidden"
           ref={folderInputRef}
           onChange={handleFolderChange}
@@ -79,7 +78,7 @@ function UploadComponent() {
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Supported formats: MP3, WAV, OGG, FLAC, M4A, AAC, AIFF, ALAC, OPUS, AMR
+        Supported formats: MP3, WAV, OGG, FLAC, AAC, M4A, WEBM
       </p>
     </div>
   );
