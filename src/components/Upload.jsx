@@ -8,38 +8,35 @@ function UploadComponent() {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
-  const isAudioFile = (file) => {
-    const audioExts = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
-    const hasValidType = file?.type?.startsWith('audio/');
-    const hasValidExt = audioExts.some(ext => file.name.toLowerCase().endsWith(ext));
-    return hasValidType || hasValidExt;
-  };
-
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
+
     if (!file) {
       toast.error('No file selected.');
-    } else if (!isAudioFile(file)) {
-      toast.error('Unsupported file type. Please upload a valid audio file.');
+    } else if (!file.type.startsWith('audio/')) {
+      toast.error('Unsupported file type. Please upload an audio file.');
     } else {
       await handleUpload(file);
     }
-    e.target.value = '';
+
+    e.target.value = ''; // Reset input
   };
 
   const handleFolderChange = async (e) => {
-    const files = Array.from(e.target.files);
-    const audioFiles = files.filter(isAudioFile);
+    const files = Array.from(e.target.files).filter(file =>
+      file.type.startsWith('audio/')
+    );
 
-    if (audioFiles.length > 0) {
-      for (const file of audioFiles) {
-        await handleUpload(file);
-      }
-      toast.success('Folder uploaded successfully!');
-    } else {
+    if (files.length === 0) {
       toast.error('No audio files found in selected folder.');
+      return;
     }
 
+    for (const file of files) {
+      await handleUpload(file);
+    }
+
+    toast.success('Folder uploaded successfully!');
     e.target.value = '';
   };
 
@@ -55,11 +52,12 @@ function UploadComponent() {
         </button>
         <input
           type="file"
-          accept="*/*"
+          accept="audio/*"
           className="hidden"
           ref={fileInputRef}
           onChange={handleFileChange}
         />
+
         <button
           onClick={() => folderInputRef.current.click()}
           className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
@@ -69,7 +67,7 @@ function UploadComponent() {
         </button>
         <input
           type="file"
-          accept="*/*"
+          accept="audio/*"
           className="hidden"
           ref={folderInputRef}
           onChange={handleFolderChange}
@@ -78,7 +76,7 @@ function UploadComponent() {
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Supported formats: MP3, WAV, OGG, FLAC, AAC, M4A, WEBM
+        Supported formats: All valid audio types (MP3, WAV, FLAC, OGG, M4A, etc.)
       </p>
     </div>
   );
