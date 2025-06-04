@@ -8,20 +8,32 @@ function UploadComponent() {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
+  const isAudioFile = (file) => {
+    const validExtensions = [
+      'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'aiff', 'alac', 'opus', 'amr'
+    ];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const hasValidExt = validExtensions.includes(extension);
+    const hasValidType = file?.type?.startsWith('audio/');
+    return hasValidExt || hasValidType;
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) {
       toast.error('No file selected.');
+    } else if (!isAudioFile(file)) {
+      toast.error('Unsupported file type. Please upload an audio file.');
     } else {
       handleUpload(file);
     }
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   const handleFolderChange = async (e) => {
     const files = Array.from(e.target.files);
+    const audioFiles = files.filter(isAudioFile);
 
-    const audioFiles = files.filter(file => file.type.startsWith('audio/') || /\.[a-z0-9]+$/i.test(file.name));
     if (audioFiles.length > 0) {
       for (const file of audioFiles) {
         await handleUpload(file);
@@ -31,7 +43,7 @@ function UploadComponent() {
       toast.error('No audio files found in selected folder.');
     }
 
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   return (
@@ -46,12 +58,10 @@ function UploadComponent() {
         </button>
         <input
           type="file"
-          accept="audio/*"
           className="hidden"
           ref={fileInputRef}
           onChange={handleFileChange}
         />
-
         <button
           onClick={() => folderInputRef.current.click()}
           className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
@@ -64,13 +74,12 @@ function UploadComponent() {
           className="hidden"
           ref={folderInputRef}
           onChange={handleFolderChange}
-          multiple
-          webkitdirectory="true"
-          directory="true"
+          webkitdirectory=""
+          directory=""
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Supported: Most audio formats (MP3, WAV, OGG, FLAC, M4A, etc.)
+        Supported formats: MP3, WAV, OGG, FLAC, M4A, AAC, AIFF, ALAC, OPUS, AMR
       </p>
     </div>
   );
