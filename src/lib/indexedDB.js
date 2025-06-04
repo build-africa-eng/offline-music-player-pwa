@@ -1,69 +1,85 @@
 import { openDB } from 'idb';
 
-const DB_NAME = 'music-db';
-const DB_VERSION = 2;
-const SONGS_STORE = 'songs';
-const PLAYLISTS_STORE = 'playlists';
+const DB_NAME = 'music_db';
+const DB_VERSION = 3;
 
-async function getDb() {
-  return openDB(DB_NAME, DB_VERSION, {
+async function initDB() {
+  return await openDB(DB_NAME, DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
-        db.createObjectStore(SONGS_STORE, { keyPath: 'id' });
-        db.createObjectStore(PLAYLISTS_STORE, { keyPath: 'id' });
-      } else if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains(PLAYLISTS_STORE)) {
-          db.createObjectStore(PLAYLISTS_STORE, { keyPath: 'id' });
-        }
+        // Initial setup (from previous context)
+        db.createObjectStore('songs', { keyPath: 'id' });
+        const playlistStore = db.createObjectStore('playlists', { keyPath: 'id' });
+        playlistStore.createIndex('songs', 'songIds', 'songId', { unique: false });
       }
-    }
+      if (oldVersion < 3) { // Add file store for blobs
+        db.createObjectStore('files', { keyPath: 'id' });
+      }
+    },
   });
 }
 
-// SONGS
-
 export async function addSong(song) {
-  const db = await getDb();
-  await db.put(SONGS_STORE, song);
+  const db = await initDB();
+  return await db.put('songs', song);
+}
+
+export async function addFile(fileId, blob) {
+  const db = await initDB();
+  return await db.put('files', 'files', { id: fileId, blob });
+}
+
+export async function getFile(fileId) {
+  const const db = await initDB();
+  return await db.get('files', fileId);
 }
 
 export async function getSongs() {
-  const db = await getDb();
-  return db.getAll(SONGS_STORE);
-}
-
-export async function getSongById(id) {
-  const db = await getDb();
-  return db.get(SONGS_STORE, id);
-}
-
-// PLAYLISTS
-
-export async function createPlaylist(name, songIds = []) {
-  const db = await getDb();
-  const id = crypto.randomUUID();
-  await db.put(PLAYLISTS_STORE, { id, name, songIds });
-  return id;
-}
-
-export async function addPlaylist(playlist) {
-  const db = await getDb();
-  const id = playlist.id || crypto.randomUUID();
-  await db.put(PLAYLISTS_STORE, { ...playlist, id });
-  return id;
+  const db = await initDB();
+  return await (await db.getAll('songs')).sort((a, b) => b.id.localeCompare(b.id));
 }
 
 export async function getPlaylists() {
-  const db = await getDb();
-  return db.getAll(PLAYLISTS_STORE);
+  const db = await initDB();
+  return await (await db.getAll('playlists')).sort((a, b) => b.id - a.id);
 }
 
 export async function updatePlaylist(playlist) {
-  const db = await getDb();
-  await db.put(PLAYLISTS_STORE, playlist);
+  const db = await initDB();
+  return await db.put('playlists', playlist);
 }
 
-export async function deletePlaylist(id) {
-  const db = await getDb();
-  await db.delete(PLAYLISTS_STORE, id);
+export async function addPlaylist(playlist) {
+  const db = await initDB();
+  return await db.put('playlists', playlist);
+}
+
+export async function deletePlaylist(playlistId) {
+  const db = await initDB();
+  return await db.delete('playlists', playlistId);
+}
+
+export async function deleteSong(songId) {
+  const db = await initDB();
+  const tx = db.transaction(['songs', 'playlists', 'files'], 'readwrite');
+  const songStore = tx.objectStore('songs');
+  const playlistStore = tx.objectStore('playlists');
+  const fileStore = tx.objectStore('files');
+
+  // Delete song
+  await songStore.delete(songId);
+
+  // Delete associated file
+  await fileStore.delete(songId);
+
+  // Remove song from all playlists
+  const playlists = await playlistStore.getAll();
+  for (const playlist of playlists) {
+    if (playlist.songIds.includes(songId)) {
+      playlist.songIds = playlist.songIds.filter(id => id !== songId);
+      await playlistStore.put(playlist);
+    }
+  }
+
+  await tx.done;
 }
