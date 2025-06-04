@@ -8,35 +8,57 @@ function UploadComponent() {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-
-    if (!file) {
-      toast.error('No file selected.');
-    } else if (!file.type.startsWith('audio/')) {
-      toast.error('Unsupported file type. Please upload an audio file.');
-    } else {
-      await handleUpload(file);
-    }
-
-    e.target.value = ''; // Reset input
-  };
-
-  const handleFolderChange = async (e) => {
-    const files = Array.from(e.target.files).filter(file =>
-      file.type.startsWith('audio/')
-    );
-
-    if (files.length === 0) {
-      toast.error('No audio files found in selected folder.');
+  const processFiles = async (files) => {
+    if (!files || files.length === 0) {
+      toast.error('No files selected.');
       return;
     }
 
+    const uploadTime = new Date().toLocaleString('en-US', {
+      timeZone: 'Africa/Nairobi', // EAT (East Africa Time)
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }); // e.g., "Wednesday, June 04, 2025, 08:01 PM"
+
+    let audioFilesFound = false;
+    let nonAudioFilesSkipped = false;
+
     for (const file of files) {
-      await handleUpload(file);
+      if (file.type.startsWith('audio/')) {
+        audioFilesFound = true;
+        await handleUpload(file);
+        console.log(`Uploaded ${file.name} at ${uploadTime}`); // Log upload time
+      } else {
+        nonAudioFilesSkipped = true;
+      }
     }
 
-    toast.success('Folder uploaded successfully!');
+    if (!audioFilesFound) {
+      toast.error('No audio files found in the selection.');
+      return;
+    }
+
+    if (nonAudioFilesSkipped) {
+      toast.info('Some non-audio files were skipped.');
+    }
+
+    toast.success('Audio files uploaded successfully!');
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    await processFiles([file]); // Process single file
+    e.target.value = '';
+  };
+
+  const handleFolderChange = async (e) => {
+    const files = Array.from(e.target.files);
+    await processFiles(files); // Process all files in folder
     e.target.value = '';
   };
 
