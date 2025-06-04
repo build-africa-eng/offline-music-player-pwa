@@ -102,9 +102,9 @@ function App() {
             </div>
             {view === 'library' && <MusicLibrary />}
             {view === 'playlists' && <Playlist />}
+            <Player queue={songs} currentFile={currentFile} fileMap={fileMap} selectSong={selectSong} waveform={null} /> {/* Add Player here */}
           </main>
         </div>
-        <Player />
         <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
       </div>
     </MusicProvider>
