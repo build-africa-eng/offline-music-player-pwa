@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import Equalizer from './Equalizer';
-import Queue from './Queue';
+import Queue from './QueueView';
 import Modal from './Modal';
 
 function Popups({
