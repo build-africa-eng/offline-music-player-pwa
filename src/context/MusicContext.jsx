@@ -14,7 +14,7 @@ export function MusicProvider({ children }) {
   const [queue, setQueue] = useState([]);
   const [shuffle, setShuffle] = useState(() => JSON.parse(localStorage.getItem('playerShuffle')) || false);
   const [repeat, setRepeat] = useState(() => localStorage.getItem('playerRepeat') || 'off');
-  const fileMapRef = useRef(new Map()); // Temporary storage during session
+  const fileMapRef = useRef(new Map());
 
   useEffect(() => {
     async function loadData() {
@@ -23,7 +23,6 @@ export function MusicProvider({ children }) {
         setSongs(songList);
         setPlaylists(playlistList);
         setQueue(songList);
-
         for (const song of songList) {
           const fileData = await getFile(song.id);
           if (fileData?.blob) {
@@ -48,9 +47,13 @@ export function MusicProvider({ children }) {
   }, [repeat]);
 
   const isAudioFile = (file) => {
+    const validExtensions = [
+      'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'aiff', 'alac', 'opus', 'amr'
+    ];
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const hasValidExt = validExtensions.includes(extension);
     const hasValidType = file?.type?.startsWith('audio/');
-    const hasExtension = /\.[a-z0-9]+$/i.test(file?.name || '');
-    return hasValidType || hasExtension;
+    return hasValidExt || hasValidType;
   };
 
   const handleSelectDirectory = async () => {
@@ -92,7 +95,6 @@ export function MusicProvider({ children }) {
     try {
       setError(null);
       console.log('Uploading file:', file.name, 'type:', file.type);
-
       const metadata = await extractMetadata(file);
       const songData = { ...metadata };
 
