@@ -1,78 +1,39 @@
-import { useEffect, useState, useRef } from 'react';
-import { getLyrics } from '../lib/audio';
-import { useMusic } from '../context/MusicContext';
+import { useState, useEffect } from 'react';
+import lrcParser from 'lrc-parser';
 
-function LyricsDisplay({ songId, title, artist }) {
-  const { currentFile } = useMusic();
-  const [lyrics, setLyrics] = useState([]);
-  const [error, setError] = useState(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const lyricsRef = useRef(null);
+function LyricsDisplay({ songId, title, artist, progress }) {
+  const [lyrics, setCurrentLyrics] = useState([]);
+  const [currentLine, setCurrentLine] = useState('');
 
   useEffect(() => {
-    let timeout;
-    async function fetchLyrics() {
+    // Placeholder: Fetch lyrics (e.g., from IndexedDB or API)
+    const fetchLyrics = async () => {
       try {
-        const data = await getLyrics(songId, title, artist);
-        const parsed = parseLRC(data);
-        setLyrics(parsed);
-        setError(null);
+        // Mock LRC data (replace with actual fetch)
+        const lrcData = `[00:01.00] Verse 1\n[00:05.00] Hello world\n[00:10.00] Chorus`;
+        const parsed = await lrcParser(lrcData);
+        setLyrics(parsed.lyrics);
       } catch (err) {
-        setError('Failed to load lyrics.');
-        setLyrics([]);
-        timeout = setTimeout(fetchLyrics, 5000); // Retry after 5s
+        console.error('Lyrics fetch error:', err);
       }
-    }
+    };
+
     fetchLyrics();
-    return () => clearTimeout(timeout);
   }, [songId, title, artist]);
 
   useEffect(() => {
-    const audio = document.querySelector('audio');
-    if (!audio) return;
+    if (!lyrics.length || !progress) return;
 
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    audio.addEventListener('timeupdate', updateTime);
-    return () => audio.removeEventListener('timeupdate', updateTime);
-  }, [currentFile]);
-
-  useEffect(() => {
-    const currentLine = lyrics.find((line, idx) => {
-      const nextTime = lyrics[idx + 1]?.time || Infinity;
-      return currentTime >= line.time && currentTime < nextTime;
+    const currentTime = progress * 1000; // Convert to milliseconds
+    const line = lyrics.find((l, i) => {
+      const nextLine = lyrics[i + 1];
+      return currentTime >= l.time && (!nextLine || currentTime < nextLine.time);
     });
-    if (currentLine && lyricsRef.current) {
-      const el = lyricsRef.current.querySelector(`[data-time="${currentLine.time}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [currentTime, lyrics]);
-
-  function parseLRC(text) {
-    const lines = text.split('\n').map(line => {
-      const match = line.match(/\[(\d+):(\d+\.\d+)\](.*)/);
-      if (!match) return { time: 0, text: line };
-      const [, min, sec, textLine] = match;
-      return { time: parseInt(min) * 60 + parseFloat(sec), text: textLine.trim() };
-    });
-    return lines.filter(line => line.text);
-  }
+    setCurrentLine(line ? line.text : '');
+  }, [progress, lyrics]);
 
   return (
-    <div
-      ref={lyricsRef}
-      className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-h-24 sm:max-h-32 overflow-y-auto p-2 bg-background/50 dark:bg-gray-800/50 rounded"
-    >
-      {error && <p className="text-accent">{error}</p>}
-      {lyrics.length === 0 && !error && <p className="italic text-gray-500 dark:text-gray-400">Loading lyrics...</p>}
-      {lyrics.map((line, idx) => (
-        <p
-          key={idx}
-          data-time={line.time}
-          className={`leading-relaxed ${currentTime >= line.time && currentTime < (lyrics[idx + 1]?.time || Infinity) ? 'text-primary font-semibold' : ''}`}
-        >
-          {line.text}
-        </p>
-      ))}
+    <div className="w-full h-20 bg-gray-200 rounded-lg p-3 overflow-y-auto text-center      <p className="text-base text-muted-foreground">{currentLine || 'No lyrics available'}</p>
     </div>
   );
 }
