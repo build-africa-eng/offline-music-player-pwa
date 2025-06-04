@@ -18,8 +18,9 @@ function UploadComponent() {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       for (const file of files) {
-        await handleUpload(file);
+        await handleUpload(file); // Process each file individually
       }
+      toast.success('Folder uploaded successfully!');
     }
   };
 
@@ -52,7 +53,8 @@ function UploadComponent() {
         className="hidden"
         ref={folderInputRef}
         onChange={handleFolderChange}
-        {...{ webkitdirectory: '', directory: '' }}
+        webkitdirectory="" // Fixed attributes for folder selection
+        directory=""
       />
     </div>
   );
