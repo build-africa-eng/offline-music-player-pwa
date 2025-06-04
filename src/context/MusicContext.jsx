@@ -77,29 +77,39 @@ export function MusicProvider({ children }) {
   };
 
   const handleUpload = async (file) => {
-    if (!file || !file.type.startsWith('audio/')) {
-      setError('Please select a valid audio file.');
-      toast.error('Please select a valid audio file.');
-      return;
-    }
-    try {
-      setError(null);
-      const metadata = await extractMetadata(file);
-      const songData = { ...metadata };
-      await addSong(songData);
-      await addFile(metadata.id, file); // Persist file to IndexedDB
-      fileMapRef.current.set(metadata.id, file);
-      setCurrentFile(songData);
-      const updatedSongs = await getSongs();
-      setSongs(updatedSongs);
-      setQueue(updatedSongs);
-      toast.success('Song uploaded!');
-    } catch (err) {
-      console.error('Error uploading song:', err);
-      setError('Failed to upload song.');
-      toast.error('Failed to upload song.');
-    }
-  };
+  const validExtensions = ['.mp3', '.wav', '.ogg', '.flac', '.m4a'];
+  const hasValidType = file?.type?.startsWith('audio/');
+  const hasValidExt = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+  if (!file || (!hasValidType && !hasValidExt)) {
+    console.error('Unsupported file type:', file?.type, file?.name);
+    setError('Unsupported file type. Please upload a valid audio file.');
+    toast.error('Unsupported file type. Please upload a valid audio file.');
+    return;
+  }
+
+  try {
+    setError(null);
+    console.log('Uploading file:', file.name, 'type:', file.type); // Debug log
+
+    const metadata = await extractMetadata(file);
+    const songData = { ...metadata };
+
+    await addSong(songData);
+    await addFile(metadata.id, file); // Persist file to IndexedDB
+    fileMapRef.current.set(metadata.id, file);
+    setCurrentFile(songData);
+
+    const updatedSongs = await getSongs();
+    setSongs(updatedSongs);
+    setQueue(updatedSongs);
+    toast.success('Song uploaded!');
+  } catch (err) {
+    console.error('Error uploading song:', err);
+    setError('Failed to upload song.');
+    toast.error('Failed to upload song.');
+  }
+};
 
   const selectSong = async (songId) => {
     try {
