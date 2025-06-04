@@ -23,6 +23,7 @@ export function MusicProvider({ children }) {
         setSongs(songList);
         setPlaylists(playlistList);
         setQueue(songList);
+
         for (const song of songList) {
           const fileData = await getFile(song.id);
           if (fileData?.blob) {
@@ -47,46 +48,15 @@ export function MusicProvider({ children }) {
   }, [repeat]);
 
   const isAudioFile = (file) => {
-    const validExtensions = [
-      'mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac', 'aiff', 'alac', 'opus', 'amr'
-    ];
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    const hasValidExt = validExtensions.includes(extension);
+    const audioExts = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.webm'];
     const hasValidType = file?.type?.startsWith('audio/');
-    return hasValidExt || hasValidType;
-  };
-
-  const handleSelectDirectory = async () => {
-    try {
-      setError(null);
-      const result = await selectMusicDirectory();
-      if (!result) {
-        setError('No directory selected or access denied.');
-        return;
-      }
-      const { files } = result;
-      for (const { file } of files) {
-        if (!isAudioFile(file)) continue;
-        const metadata = await extractMetadata(file);
-        const songData = { ...metadata };
-        await addSong(songData);
-        await addFile(metadata.id, file);
-        fileMapRef.current.set(metadata.id, file);
-      }
-      const updatedSongs = await getSongs();
-      setSongs(updatedSongs);
-      setQueue(updatedSongs);
-      toast.success('Music folder loaded!');
-    } catch (err) {
-      console.error('Error selecting directory:', err);
-      setError('Failed to load music files.');
-      toast.error('Failed to load music files.');
-    }
+    const hasValidExt = audioExts.some(ext => file.name.toLowerCase().endsWith(ext));
+    return hasValidType || hasValidExt;
   };
 
   const handleUpload = async (file) => {
     if (!file || !isAudioFile(file)) {
-      console.error('Unsupported file type:', file?.type, file?.name);
+      console.error('Unsupported file:', file?.name, 'type:', file?.type);
       setError('Unsupported file type. Please upload a valid audio file.');
       toast.error('Unsupported file type. Please upload a valid audio file.');
       return;
@@ -114,6 +84,36 @@ export function MusicProvider({ children }) {
     }
   };
 
+  const handleSelectDirectory = async () => {
+    try {
+      setError(null);
+      const result = await selectMusicDirectory();
+      if (!result) {
+        setError('No directory selected or access denied.');
+        return;
+      }
+
+      const { files } = result;
+      for (const { file } of files) {
+        if (!isAudioFile(file)) continue;
+        const metadata = await extractMetadata(file);
+        const songData = { ...metadata };
+        await addSong(songData);
+        await addFile(metadata.id, file);
+        fileMapRef.current.set(metadata.id, file);
+      }
+
+      const updatedSongs = await getSongs();
+      setSongs(updatedSongs);
+      setQueue(updatedSongs);
+      toast.success('Music folder loaded!');
+    } catch (err) {
+      console.error('Error selecting directory:', err);
+      setError('Failed to load music files.');
+      toast.error('Failed to load music files.');
+    }
+  };
+
   const selectSong = async (songId) => {
     try {
       let file = fileMapRef.current.get(songId);
@@ -125,7 +125,7 @@ export function MusicProvider({ children }) {
         }
       }
       if (file) {
-        const song = songs.find((s) => s.id === songId);
+        const song = songs.find(s => s.id === songId);
         setCurrentFile(song);
         setError(null);
       } else {
