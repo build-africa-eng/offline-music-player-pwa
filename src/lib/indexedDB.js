@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'music_db';
-const DB_VERSION = 3;
+const DB_VERSION = 3; // Incremented version to create new object store
 
 async function initDB() {
   return await openDB(DB_NAME, DB_NAME, DB_VERSION, {
@@ -26,22 +26,22 @@ export async function addSong(song) {
 
 export async function addFile(fileId, blob) {
   const db = await initDB();
-  return await db.put('files', 'files', { id: fileId, blob });
+  return await db.put('files', { id: fileId, blob });
 }
 
 export async function getFile(fileId) {
-  const const db = await initDB();
+  const db = await initDB(); // Fixed: Removed duplicate 'const'
   return await db.get('files', fileId);
 }
 
 export async function getSongs() {
   const db = await initDB();
-  return await (await db.getAll('songs')).sort((a, b) => b.id.localeCompare(b.id));
+  return await (await db.getAll('songs')).sort((a, b) => a.id.localeCompare(b.id));
 }
 
 export async function getPlaylists() {
   const db = await initDB();
-  return await (await db.getAll('playlists')).sort((a, b) => b.id - a.id);
+  return await (await db.getAll('playlists')).sort((a, b) => a.id - b.id);
 }
 
 export async function updatePlaylist(playlist) {
