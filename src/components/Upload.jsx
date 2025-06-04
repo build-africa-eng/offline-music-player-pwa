@@ -12,18 +12,16 @@ function UploadComponent() {
     const file = e.target.files[0];
     if (!file) {
       toast.error('No file selected.');
-    } else if (!file.type.startsWith('audio/')) {
-      toast.error('Unsupported file type. Please upload an audio file.');
     } else {
       handleUpload(file);
     }
-    e.target.value = ''; // Reset file input so user can reselect same file
+    e.target.value = ''; // Reset input
   };
 
   const handleFolderChange = async (e) => {
     const files = Array.from(e.target.files);
-    const audioFiles = files.filter(file => file.type.startsWith('audio/'));
 
+    const audioFiles = files.filter(file => file.type.startsWith('audio/') || /\.[a-z0-9]+$/i.test(file.name));
     if (audioFiles.length > 0) {
       for (const file of audioFiles) {
         await handleUpload(file);
@@ -33,7 +31,7 @@ function UploadComponent() {
       toast.error('No audio files found in selected folder.');
     }
 
-    e.target.value = ''; // Reset folder input
+    e.target.value = ''; // Reset input
   };
 
   return (
@@ -53,6 +51,7 @@ function UploadComponent() {
           ref={fileInputRef}
           onChange={handleFileChange}
         />
+
         <button
           onClick={() => folderInputRef.current.click()}
           className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
@@ -62,16 +61,16 @@ function UploadComponent() {
         </button>
         <input
           type="file"
-          accept="audio/*"
           className="hidden"
           ref={folderInputRef}
           onChange={handleFolderChange}
-          webkitdirectory=""
-          directory=""
+          multiple
+          webkitdirectory="true"
+          directory="true"
         />
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Supported formats: MP3, WAV, OGG, FLAC
+        Supported: Most audio formats (MP3, WAV, OGG, FLAC, M4A, etc.)
       </p>
     </div>
   );
