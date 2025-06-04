@@ -1,6 +1,6 @@
+import Howl from 'howler';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { Howl } from 'howler';
 import { applyCrossfade } from '../lib/audio';
 
 export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
@@ -14,15 +14,14 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
   const [crossfadeEnabled, setCrossfadeEnabled] = useState(() => localStorage.getItem('crossfadeEnabled') === 'true');
   const howlRef = useRef(null);
 
-  // Sync audio element with current file
   useEffect(() => {
     if (currentFile && fileMapRef.current.has(currentFile.id)) {
       const file = fileMapRef.current.get(currentFile.id);
       const audioSrc = URL.createObjectURL(file);
-      howlRef.current = new Howl({
+      howlRef.current = new Howl.Howl({ // Adjusted to Howl.Howl
         src: [audioSrc],
-        format: ['mp3', 'wav', 'aac', 'flac', 'ogg'], // Specify supported formats
-        html5: true, // Use HTML5 Audio for better browser compatibility
+        format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
+        html5: true,
         onload: () => {
           setDuration(howlRef.current.duration());
           if (isPlaying) howlRef.current.play();
@@ -40,7 +39,6 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
     }
   }, [currentFile, fileMapRef]);
 
-  // Update progress
   useEffect(() => {
     if (!howlRef.current) return;
     const updateProgress = () => {
@@ -54,7 +52,6 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
     };
   }, [currentFile]);
 
-  // Handle volume and mute
   useEffect(() => {
     if (howlRef.current) {
       howlRef.current.volume(isMuted ? 0 : volume);
@@ -63,7 +60,6 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
     localStorage.setItem('isMuted', isMuted);
   }, [volume, isMuted]);
 
-  // Playback controls
   const handlePlayPause = () => {
     if (!howlRef.current) return;
     if (isPlaying) {
@@ -99,7 +95,7 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
       }
       try {
         const nextAudioSrc = URL.createObjectURL(nextFile);
-        const nextHowl = new Howl({
+        const nextHowl = new Howl.Howl({
           src: [nextAudioSrc],
           format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
           html5: true,
@@ -130,7 +126,6 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
   };
 
   const handlePreviousTrack = async () => {
-    // Similar logic to handleNextTrack, adjusted for previous track
     if (!queue.length || !currentFile) return;
     let prevIndex;
     const currentIndex = queue.findIndex((song) => song.id === currentFile.id);
@@ -152,7 +147,7 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
       }
       try {
         const prevAudioSrc = URL.createObjectURL(prevFile);
-        const prevHowl = new Howl({
+        const prevHowl = new Howl.Howl({
           src: [prevAudioSrc],
           format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
           html5: true,
@@ -203,7 +198,7 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
   };
 
   return {
-    audioRef: howlRef, // Note: Renamed to match ref usage
+    audioRef: howlRef,
     isPlaying,
     progress,
     duration,
