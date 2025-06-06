@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+
+import { useState, useEffect } from 'react'; // Ensure React and hooks are imported
 import { useMusic } from '../context/MusicContext';
 import { usePlayerLogic } from '../hooks/usePlayerLogic';
 import PlayerControls from './PlayerControls';
@@ -49,7 +50,7 @@ function Player() {
   } = usePlayerLogic({
     queue: useMusic().queue,
     currentFile,
-    fileMapRef: useMusic().fileMapRef, // Assuming fileMapRef is exposed in MusicContext if needed
+    fileMapRef: useMusic().fileMapRef, // Assuming fileMapRef is exposed
     selectSong: useMusic().selectSong,
   });
 
@@ -203,7 +204,6 @@ function Player() {
         metadata={currentFile}
         progress={progress}
         duration={duration}
-        waveform={undefined} // Remove waveform prop if not used
       />
       <Popups
         showEqualizer={showEqualizer}
