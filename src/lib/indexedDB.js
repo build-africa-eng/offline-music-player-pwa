@@ -11,19 +11,13 @@ async function initDB() {
           db.createObjectStore('songs', { keyPath: 'id' });
           db.createObjectStore('playlists', { keyPath: 'id' });
         }
-        if (oldVersion < 2) {
-          // No changes between 1 and 2 (placeholder)
-        }
         if (oldVersion < 3) {
           const filesStore = db.createObjectStore('files', { keyPath: 'id' });
-          // Migrate existing song files if needed (e.g., if stored differently)
           const songStore = db.transaction.objectStore('songs');
           songStore.openCursor().onsuccess = (event) => {
             const cursor = event.target.result;
             if (cursor) {
-              // Assume files were stored under song.id previously
-              // This is a placeholder; adjust based on your data structure
-              filesStore.put({ id: cursor.value.id, blob: null }); // Initialize with null
+              filesStore.put({ id: cursor.value.id, blob: null });
               cursor.continue();
             }
           };
@@ -41,7 +35,7 @@ async function initDB() {
     });
   } catch (err) {
     console.error('Failed to initialize IndexedDB:', err);
-    throw err; // Let the caller handle this
+    throw err;
   }
 }
 
@@ -95,7 +89,7 @@ export async function addFile(fileId, blob) {
 export async function getFile(fileId) {
   const db = await initDB();
   const file = await db.get('files', fileId);
-  return file || null; // Return null if not found
+  return file || null;
 }
 
 // PLAYLISTS
