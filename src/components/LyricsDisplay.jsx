@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useMusic } from '../context/MusicContext';
+import { useMusic } from '../../context/MusicContext';
 import Lyric from 'lyric-parser';
 
-const LyricsDisplay = ({ songId }) => {
+const LyricsDisplay = ({ songId, progress, isPlaying }) => {
   const { getLyrics } = useMusic();
   const [lyrics, setLyrics] = useState(null);
   const [currentLyric, setCurrentLyric] = useState('');
@@ -37,24 +37,29 @@ const LyricsDisplay = ({ songId }) => {
     };
   }, [songId, getLyrics]);
 
-  // Placeholder for external sync (e.g., from Player.jsx)
   useEffect(() => {
-    // This effect would be called by Player.jsx to sync with progress
-    // For now, assume it’s managed externally
-  }, []);
+    if (lyrics && isPlaying) {
+      lyrics.seek(progress * 1000);
+      lyrics.play();
+    } else if (lyrics && !isPlaying) {
+      lyrics.stop();
+    }
+  }, [progress, isPlaying, lyrics]);
 
   if (!lyrics) return null;
 
   return (
     <div
       ref={lyricsRef}
-      className="max-w-2xl w-full h-40 overflow-y-auto bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center"
+      className="lyrics-container"
+      aria-live="polite"
+      aria-label="Lyrics display"
     >
       {lyrics.lines.map((line, index) => (
         <p
           key={index}
           className={`${
-            currentLyric === line.lyric ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'
+            currentLyric === line.lyric ? 'text-primary' : 'text-gray-600 dark:text-gray-300'
           } transition-colors duration-200`}
         >
           {line.lyric}
