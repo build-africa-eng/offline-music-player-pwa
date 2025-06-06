@@ -45,7 +45,30 @@ export function MusicProvider({ children }) {
     loadData();
   }, []);
 
-  // Handle directory or file selection
+  // Handle single file upload
+  const handleUpload = async (file) => {
+    try {
+      if (!file) throw new Error('No file provided');
+      if (!file.type.startsWith('audio/')) throw new Error('Not an audio file');
+
+      const song = {
+        id: crypto.randomUUID(),
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        artist: 'Unknown',
+        duration: 0, // Placeholder; can be updated with metadata parsing
+      };
+      await addSong(song);
+      await addFile(song.id, file);
+      fileMapRef.current.set(song.id, file);
+      setSongs((prev) => [...prev, song]);
+      setQueue((prev) => [...prev, song]);
+    } catch (err) {
+      console.error('Error uploading file:', err);
+      throw err; // Let UploadComponent handle the toast
+    }
+  };
+
+  // Handle directory or multiple files selection
   const handleSelectDirectory = async (event) => {
     try {
       const files = event.target.files || [];
@@ -58,7 +81,7 @@ export function MusicProvider({ children }) {
             id: crypto.randomUUID(),
             title: file.name.replace(/\.[^/.]+$/, ''),
             artist: 'Unknown',
-            duration: 0, // Placeholder; can be updated with metadata parsing
+            duration: 0,
           };
           await addSong(song);
           await addFile(song.id, file);
@@ -151,6 +174,7 @@ export function MusicProvider({ children }) {
     setQueue,
     setCurrentFile,
     setError,
+    handleUpload, // Added for UploadComponent
     handleSelectDirectory,
     selectSong,
     addToPlaylist,
