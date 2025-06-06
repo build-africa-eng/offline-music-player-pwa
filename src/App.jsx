@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
-import MusicLibrary from './components/MusicLibrary';
-import Player from './components/Player';
-import Playlist from './components/Playlist';
+import { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { MusicProvider, useMusic } from './context/MusicContext';
 import { Toaster, toast } from 'react-hot-toast';
 import { addSwipeGestures } from './lib/gestures';
 import { Trash2 } from 'lucide-react';
+
+// Lazy-load components
+const MusicLibrary = lazy(() => import('./components/MusicLibrary'));
+const Player = lazy(() => import('./components/Player'));
+const Playlist = lazy(() => import('./components/Playlist'));
 
 function AppContent() {
   const { error, songs, clearLibrary } = useMusic();
@@ -151,11 +153,15 @@ function AppContent() {
               Playlists
             </button>
           </div>
-          {view === 'library' && <MusicLibrary />}
-          {view === 'playlists' && <Playlist />}
+          <Suspense fallback={<div className="text-center text-white">Loading...</div>}>
+            {view === 'library' && <MusicLibrary />}
+            {view === 'playlists' && <Playlist />}
+          </Suspense>
         </main>
       </div>
-      <Player />
+      <Suspense fallback={<div className="text-center text-white">Loading player...</div>}>
+        <Player />
+      </Suspense>
       <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
     </div>
   );
