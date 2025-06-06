@@ -5,10 +5,10 @@ import Playlist from './components/Playlist';
 import { MusicProvider, useMusic } from './context/MusicContext';
 import { Toaster, toast } from 'react-hot-toast';
 import { addSwipeGestures } from './lib/gestures';
+import { Trash2 } from 'lucide-react';
 
-// Wrapper component to access MusicContext
 function AppContent() {
-  const { error, songs } = useMusic();
+  const { error, songs, clearLibrary } = useMusic();
   const [view, setView] = useState('library');
   const [isLoading, setIsLoading] = useState(true);
   const mainRef = useRef(null);
@@ -23,14 +23,12 @@ function AppContent() {
   const [nextBackground, setNextBackground] = useState(null);
   const [isFading, setIsFading] = useState(false);
 
-  // Handle initial loading state
   useEffect(() => {
     if (songs) {
       setIsLoading(false);
     }
   }, [songs]);
 
-  // Preload backgrounds and handle fading
   useEffect(() => {
     const preloadImages = wallpapers.map((url) => {
       const img = new Image();
@@ -56,12 +54,11 @@ function AppContent() {
           setNextBackground(null);
         }, 500);
       }
-    }, 60000); // Increased to 60 seconds for better mobile performance
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [currentBackground]);
 
-  // Add swipe gestures
   useEffect(() => {
     if (!mainRef.current) return;
     const cleanup = addSwipeGestures(
@@ -72,12 +69,17 @@ function AppContent() {
     return cleanup;
   }, []);
 
-  // Display global errors
   useEffect(() => {
     if (error) {
       toast.error(error);
     }
   }, [error]);
+
+  const handleClearLibrary = async () => {
+    if (window.confirm('Are you sure you want to clear your music library? This action cannot be undone.')) {
+      await clearLibrary();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -105,17 +107,28 @@ function AppContent() {
       />
       <div className="absolute inset-0 bg-black/50 z-0" />
       <div className="relative z-10 text-white p-3 sm:p-4 pb-24 sm:pb-32">
-        <header className="bg-primary text-white shadow rounded-lg mb-3 sm:mb-4 flex items-center gap-2 p-3 sm:p-4">
-          <img
-            src="/logo.png"
-            alt="App Logo"
-            className="w-8 h-8 rounded"
-            onError={(e) => {
-              console.error('Logo load error:', e);
-              e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>';
-            }}
-          />
-          <h1 className="text-2xl sm:text-3xl font-bold">Offline Music Player</h1>
+        <header className="bg-primary text-white shadow rounded-lg mb-3 sm:mb-4 flex items-center justify-between gap-2 p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="App Logo"
+              className="w-8 h-8 rounded"
+              onError={(e) => {
+                console.error('Logo load error:', e);
+                e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>';
+              }}
+            />
+            <h1 className="text-2xl sm:text-3xl font-bold">Offline Music Player</h1>
+          </div>
+          {songs.length > 0 && (
+            <button
+              onClick={handleClearLibrary}
+              className="bg-red-600 hover:bg-red-700 text-white py-1 px-2 rounded-lg flex items-center gap-1 text-sm transition-colors"
+              aria-label="Clear music library"
+            >
+              <Trash2 className="w-4 h-4" /> Clear Library
+            </button>
+          )}
         </header>
         <main ref={mainRef} className="max-w-4xl mx-auto">
           <div className="flex mb-3 sm:mb-4 space-x-2 overflow-x-auto">
