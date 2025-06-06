@@ -1,40 +1,67 @@
-import { useState, useEffect } from 'react';
-import lrcParser from 'lrc-parser';
+import { useState, useEffect, useRef } from 'react';
+import { useMusic } from '../../context/MusicContext';
+import Lyric from 'lyric-parser';
 
-function LyricsDisplay({ songId, title, artist, progress }) {
-  const [lyrics, setLyrics] = useState([]);
-  const [currentLine, setCurrentLine] = useState('');
+const LyricsDisplay = ({ songId }) => {
+  const { getLyrics } = useMusic();
+  const [lyrics, setLyrics] = useState(null);
+  const [currentLyric, setCurrentLyric] = useState('');
+  const lyricsRef = useRef(null);
 
   useEffect(() => {
-    const fetchLyrics = async () => {
-      try {
-        // Placeholder: Replace with actual lyrics fetching logic (e.g., from IndexedDB or API)
-        const lrcData = `[00:01.00] Verse 1\n[00:05.00] Hello world\n[00:10.00] Chorus`;
-        const parsed = lrcParser(lrcData);
-        setLyrics(parsed.lyrics || []);
-      } catch (err) {
-        console.error('Lyrics fetch error:', err);
-        setLyrics([]);
+    const loadLyrics = async () => {
+      const lyricText = await getLyrics(songId);
+      if (lyricText) {
+        const lyricParser = new Lyric(lyricText, ({ line }) => {
+          setCurrentLyric(line.lyric);
+          if (lyricsRef.current) {
+            const activeLyric = lyricsRef.current.querySelector('.text-primary');
+            if (activeLyric) {
+              activeLyric.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
+        });
+        setLyrics(lyricParser);
+      } else {
+        setLyrics(null);
+        setCurrentLyric('');
       }
     };
-    fetchLyrics();
-  }, [songId, title, artist]);
 
+    loadLyrics();
+
+    return () => {
+      if (lyrics) {
+        lyrics.stop();
+      }
+    };
+  }, [songId, getLyrics]);
+
+  // Placeholder for external sync (e.g., from Player.jsx)
   useEffect(() => {
-    if (!lyrics.length || !progress) return;
-    const currentTime = progress * 1000; // Convert progress (0-1) to milliseconds
-    const line = lyrics.find((l, i) => {
-      const nextLine = lyrics[i + 1];
-      return currentTime >= l.time && (!nextLine || currentTime < nextLine.time);
-    });
-    setCurrentLine(line ? line.text : '');
-  }, [progress, lyrics]);
+    // This effect would be called by Player.jsx to sync with progress
+    // For now, assume it’s managed externally
+  }, []);
+
+  if (!lyrics) return null;
 
   return (
-    <div className="w-full h-20 bg-gray-200 dark:bg-gray-700 rounded-lg p-3 overflow-y-auto text-center">
-      <p className="text-base text-muted-foreground">{currentLine || 'No lyrics available'}</p>
+    <div
+      ref={lyricsRef}
+      className="max-w-2xl w-full h-40 overflow-y-auto bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center"
+    >
+      {lyrics.lines.map((line, index) => (
+        <p
+          key={index}
+          className={`${
+            currentLyric === line.lyric ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'
+          } transition-colors duration-200`}
+        >
+          {line.lyric}
+        </p>
+      ))}
     </div>
   );
-}
+};
 
 export default LyricsDisplay;
