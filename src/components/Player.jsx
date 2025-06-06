@@ -9,8 +9,8 @@ import ThemeToggle from './ThemeToggle';
 import PlayerFooter from './PlayerFooter';
 import Popups from './Popups';
 import NowPlayingModal from './NowPlayingModal';
+import LyricsDisplay from './LyricsDisplay';
 import { Play, Pause, Upload } from 'lucide-react';
-import Lyric from 'lyric-parser';
 
 function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
   const { getLyrics, handleUploadLyrics } = useMusic();
@@ -18,9 +18,6 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
   const [showQueue, setShowQueue] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
-  const [lyrics, setLyrics] = useState(null);
-  const [currentLyric, setCurrentLyric] = useState('');
-  const lyricsRef = useRef(null);
 
   const {
     audioRef,
@@ -42,53 +39,6 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
     handlePreviousTrack,
     handleSeek,
   } = usePlayerLogic({ queue, currentFile, fileMapRef, selectSong });
-
-  // Fetch and parse lyrics when the current song changes
-  useEffect(() => {
-    if (!currentFile) {
-      setLyrics(null);
-      setCurrentLyric('');
-      return;
-    }
-
-    const loadLyrics = async () => {
-      const lyricText = await getLyrics(currentFile.id);
-      if (lyricText) {
-        const lyricParser = new Lyric(lyricText, ({ line }) => {
-          setCurrentLyric(line.lyric);
-          // Auto-scroll to the current lyric
-          if (lyricsRef.current) {
-            const activeLyric = lyricsRef.current.querySelector('.text-primary');
-            if (activeLyric) {
-              activeLyric.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-        });
-        setLyrics(lyricParser);
-      } else {
-        setLyrics(null);
-        setCurrentLyric('');
-      }
-    };
-
-    loadLyrics();
-
-    return () => {
-      if (lyrics) {
-        lyrics.stop();
-      }
-    };
-  }, [currentFile, getLyrics]);
-
-  // Sync lyrics with playback time
-  useEffect(() => {
-    if (lyrics && isPlaying) {
-      lyrics.seek(progress * 1000); // lyric-parser uses milliseconds
-      lyrics.play();
-    } else if (lyrics && !isPlaying) {
-      lyrics.stop();
-    }
-  }, [progress, isPlaying, lyrics]);
 
   const handleLyricsUpload = (e) => {
     const file = e.target.files[0];
@@ -112,7 +62,7 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
       {currentFile ? (
         <>
           <div className="flex flex-col items-center gap-4 w-full max-w-4xl">
-            <Artwork artwork={currentFile.artwork} title={currentFile.title} />
+            <Artwork artwork={currentFile.picture} title={currentFile.title} />
             <TrackInfo
               metadata={currentFile}
               progress={progress}
@@ -130,7 +80,7 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
                   className="hidden"
                 />
               </label>
-              {lyrics && (
+              {getLyrics(currentFile.id) && (
                 <button
                   onClick={() => setShowLyrics(!showLyrics)}
                   className="text-sm text-gray-500 dark:text-gray-400 hover:text-primary"
@@ -139,23 +89,7 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
                 </button>
               )}
             </div>
-            {showLyrics && lyrics && (
-              <div
-                ref={lyricsRef}
-                className="max-w-2xl w-full h-40 overflow-y-auto bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center"
-              >
-                {lyrics.lines.map((line, index) => (
-                  <p
-                    key={index}
-                    className={`${
-                      currentLyric === line.lyric ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'
-                    } transition-colors duration-200`}
-                  >
-                    {line.lyric}
-                  </p>
-                ))}
-              </div>
-            )}
+            {showLyrics && <LyricsDisplay songId={currentFile.id} />}
             <PlayerControls
               isPlaying={isPlaying}
               onPlayPause={handlePlayPause}
