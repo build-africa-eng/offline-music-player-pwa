@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { selectMusicDirectory } from '../lib/fileSystem';
-import { addSong, getSongs, getPlaylists, updatePlaylist, addFile, getFile } from '../lib/indexedDB';
+import { addSong, getSongs, getPlaylists, updatePlaylist, addFile, getFile, deleteSong } from '../lib/indexedDB';
 import { extractMetadata } from '../lib/metadata';
 import toast from 'react-hot-toast';
 
@@ -56,6 +56,8 @@ export function MusicProvider({ children }) {
         return;
       }
       const { files } = result;
+      const totalFiles = files.length;
+      let processed = 0;
 
       for (const { file } of files) {
         if (!file.type.startsWith('audio/')) continue;
@@ -64,6 +66,9 @@ export function MusicProvider({ children }) {
         await addSong(metadata);
         await addFile(metadata.id, file);
         fileMapRef.current.set(metadata.id, file);
+
+        processed++;
+        toast(`Processing ${processed}/${totalFiles} files...`, { id: 'progress', duration: 2000 });
       }
 
       const updatedSongs = await getSongs();
@@ -79,7 +84,7 @@ export function MusicProvider({ children }) {
 
   const handleUpload = async (file) => {
     if (!file || !file.type.startsWith('audio/')) {
-      console.error('Unsupported file type:', file?.type, file?.name);
+      console.error('Unsupported file type:', { type: file?.type, name: file?.name });
       setError('Unsupported file type. Please upload a valid audio file.');
       toast.error('Unsupported file type. Please upload a valid audio file.');
       return;
@@ -98,7 +103,7 @@ export function MusicProvider({ children }) {
       setQueue(updatedSongs);
       toast.success('Song uploaded!');
     } catch (err) {
-      console.error('Error uploading song:', err);
+      console.error('Error uploading song:', { name: file.name, error: err.message });
       setError('Failed to upload song.');
       toast.error('Failed to upload song.');
     }
@@ -150,6 +155,34 @@ export function MusicProvider({ children }) {
     }
   };
 
+  const clearLibrary = async () => {
+    try {
+      setError(null);
+      // Delete all songs and their files
+      for (const song of songs) {
+        await deleteSong(song.id);
+        fileMapRef.current.delete(song.id);
+      }
+      // Reset playlists
+      const updatedPlaylists = playlists.map(playlist => ({
+        ...playlist,
+        songIds: [],
+      }));
+      for (const playlist of updatedPlaylists) {
+        await updatePlaylist(playlist);
+      }
+      setSongs([]);
+      setPlaylists(updatedPlaylists);
+      setQueue([]);
+      setCurrentFile(null);
+      toast.success('Library cleared successfully!');
+    } catch (err) {
+      console.error('Error clearing library:', err);
+      setError('Failed to clear library.');
+      toast.error('Failed to clear library.');
+    }
+  };
+
   return (
     <MusicContext.Provider
       value={{
@@ -168,6 +201,7 @@ export function MusicProvider({ children }) {
         handleUpload,
         selectSong,
         addToPlaylist,
+        clearLibrary, // Added new function
       }}
     >
       {children}
