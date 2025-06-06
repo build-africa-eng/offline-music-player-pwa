@@ -1,23 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useMusic } from '../context/MusicContext';
-import { FolderPlus, ListMusic, PlusCircle } from 'lucide-react';
-import UploadComponent from './Upload';
+import { FolderPlus, ListMusic, PlusCircle, Upload } from 'lucide-react';
+
+function UploadComponent() {
+  const { handleSelectDirectory } = useMusic();
+  const [fileInput, setFileInput] = useState(null);
+
+  const handleUpload = (event) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = true;
+    input.accept = 'audio/*';
+    input.onchange = (e) => handleSelectDirectory(e);
+    input.click();
+    setFileInput(input);
+  };
+
+  return (
+    <button
+      onClick={handleUpload}
+      className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
+      aria-label="Upload files"
+    >
+      <Upload className="w-4 h-4" /> Upload File
+    </button>
+  );
+}
 
 function MusicLibrary() {
-  const { songs, error, playlists, handleSelectDirectory, selectSong, addToPlaylist, setQueue } = useMusic();
+  const { songs, error, playlists, handleSelectDirectory } = useMusic();
   const [selectedPlaylistId, setSelectedPlaylistId] = useState('');
-  const [prompted, setPrompted] = useState(false);
-
-  useEffect(() => {
-    if (songs.length === 0 && !prompted) {
-      setPrompted(true); // Only prompt once if no songs
-    }
-  }, [songs, prompted]);
-
-  const handleSongSelect = (songId) => {
-    selectSong(songId);
-    setQueue(songs);
-  };
 
   return (
     <div className="p-3 sm:p-4 bg-background/80 text-text rounded-lg shadow-md backdrop-blur-sm">
@@ -27,13 +39,33 @@ function MusicLibrary() {
       {error && <p className="text-accent mb-3 sm:mb-4 text-xs sm:text-sm">{error}</p>}
       <div className="flex flex-col sm:flex-row gap-2 mb-3 sm:mb-4">
         <button
-          onClick={handleSelectDirectory}
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.webkitdirectory = true;
+            input.onchange = (e) => handleSelectDirectory(e);
+            input.click();
+          }}
           className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
           aria-label="Select music folder"
         >
           <FolderPlus className="w-4 h-4" /> Select Music Folder
         </button>
         <UploadComponent />
+        <button
+          onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.webkitdirectory = true;
+            input.onchange = (e) => handleSelectDirectory(e);
+            input.click();
+          }}
+          className="bg-primary hover:bg-secondary text-white text-sm sm:text-base font-bold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center gap-2"
+          aria-label="Upload folder"
+        >
+          <FolderPlus className="w-4 h-4" /> Upload Folder
+        </button>
       </div>
       <div className="mb-3 sm:mb-4">
         <label className="text-xs sm:text-sm mr-2">Add to playlist:</label>
@@ -52,28 +84,24 @@ function MusicLibrary() {
         <p className="text-text text-xs sm:text-sm">No songs found. Select a music folder or upload files.</p>
       ) : (
         <ul className="space-y-2">
-          {songs.map((song) => {
-            const playlist = playlists.find((p) => p.id === selectedPlaylistId);
-            const isInPlaylist = playlist?.songIds.includes(song.id);
-            return (
-              <li key={song.id} className="flex items-center justify-between flex-wrap gap-2">
-                <button
-                  onClick={() => handleSongSelect(song.id)}
-                  className="text-left flex-1 hover:text-primary transition-colors text-sm sm:text-base py-1"
-                >
-                  {song.title} - {song.artist}
-                </button>
-                <button
-                  onClick={() => addToPlaylist(song.id, selectedPlaylistId)}
-                  className="bg-primary hover:bg-secondary text-white py-1 px-2 rounded text-xs sm:text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
-                  aria-label={`Add ${song.title} to playlist`}
-                  disabled={!selectedPlaylistId || isInPlaylist}
-                >
-                  <PlusCircle className="w-4 h-4" /> Add
-                </button>
-              </li>
-            );
-          })}
+          {songs.map((song) => (
+            <li key={song.id} className="flex items-center justify-between flex-wrap gap-2">
+              <button
+                onClick={() => {}}
+                className="text-left flex-1 hover:text-primary transition-colors text-sm sm:text-base py-1"
+              >
+                {song.title} - {song.artist}
+              </button>
+              <button
+                onClick={() => {}}
+                className="bg-primary hover:bg-secondary text-white py-1 px-2 rounded text-xs sm:text-sm transition-colors disabled:opacity-50 flex items-center gap-1"
+                aria-label={`Add ${song.title} to playlist`}
+                disabled={!selectedPlaylistId}
+              >
+                <PlusCircle className="w-4 h-4" /> Add
+              </button>
+            </li>
+          ))}
         </ul>
       )}
     </div>
