@@ -3,8 +3,8 @@ importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox
 workbox.setConfig({ debug: false });
 
 workbox.precaching.precacheAndRoute([
-  { url: '/', revision: '4' },
-  { url: '/index.html', revision: '4' },
+  { url: '/', revision: '5' }, // Increment to force cache update
+  { url: '/index.html', revision: '5' },
   { url: '/assets/index-*.js', revision: null },
   { url: '/assets/index-*.css', revision: null },
   { url: '/logo.png', revision: '1' },
