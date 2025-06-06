@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './index.css';
-import { Workbox } from 'workbox-window';
-
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-  const wb = new Workbox('/sw.js'); // Changed from /service-worker.js
-  wb.register().catch((err) => console.error('Service Worker registration failed:', err));
-}
+import { MusicProvider } from './context/MusicContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(
+  <React.StrictMode>
+    <MusicProvider>
+      <App />
+    </MusicProvider>
+  </React.StrictMode>
+);
