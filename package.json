@@ -20,6 +20,7 @@
     "@vitejs/plugin-react": "^4.0.0",
     "howler": "^2.2.4",
     "lrc-parser": "^1.0.1",
+    "lyric-parser": "^1.0.1"'
     "classnames": "^2.5.1",
     "framer-motion": "^12.15.0",
     "react-hot-toast": "^2.5.2",
