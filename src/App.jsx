@@ -3,6 +3,8 @@ import { MusicProvider, useMusic } from './context/MusicContext';
 import { Toaster, toast } from 'react-hot-toast';
 import { addSwipeGestures } from './lib/gestures';
 import { Trash2 } from 'lucide-react';
+import ErrorBoundary from './components/ErrorBoundary';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Lazy-load components
 const MusicLibrary = lazy(() => import('./components/MusicLibrary'));
@@ -34,7 +36,7 @@ function AppContent() {
   useEffect(() => {
     const preloadImages = wallpapers.map((url) => {
       const img = new Image();
-      img.src = url;
+      img.src = url + '&w=800'; // Lower resolution for performance
       return new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
@@ -170,7 +172,11 @@ function AppContent() {
 function App() {
   return (
     <MusicProvider>
-      <AppContent />
+      <ThemeProvider>
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
+      </ThemeProvider>
     </MusicProvider>
   );
 }
