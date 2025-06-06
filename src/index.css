@@ -43,6 +43,22 @@ input[orient="vertical"] {
   @apply h-16 sm:h-20 w-1;
 }
 
+/* Lyrics container styles */
+.lyrics-container {
+  @apply max-w-2xl w-full overflow-y-auto bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-center;
+  max-height: 10rem; /* Default height for larger screens */
+}
+
+.lyrics-container p {
+  @apply my-2 text-sm leading-relaxed;
+  transition: all 0.2s ease-in-out;
+}
+
+.lyrics-container p.text-primary {
+  @apply font-semibold scale-105;
+  color: var(--color-primary);
+}
+
 @media (max-width: 640px) {
   .player-items {
     @apply flex-wrap gap-1;
