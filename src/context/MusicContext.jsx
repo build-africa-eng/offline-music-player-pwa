@@ -109,6 +109,36 @@ export function MusicProvider({ children }) {
     }
   };
 
+  const handleUploadLyrics = async (file, songId) => {
+    if (!file || !file.name.endsWith('.lrc')) {
+      console.error('Unsupported file type for lyrics:', { type: file?.type, name: file?.name });
+      setError('Please upload a valid .lrc file.');
+      toast.error('Please upload a valid .lrc file.');
+      return;
+    }
+
+    try {
+      setError(null);
+      const text = await file.text();
+      await addFile(`${songId}-lyrics`, text); // Store lyrics in IndexedDB
+      toast.success('Lyrics uploaded successfully!');
+    } catch (err) {
+      console.error('Error uploading lyrics:', { name: file.name, error: err.message });
+      setError('Failed to upload lyrics.');
+      toast.error('Failed to upload lyrics.');
+    }
+  };
+
+  const getLyrics = async (songId) => {
+    try {
+      const lyricData = await getFile(`${songId}-lyrics`);
+      return lyricData || null;
+    } catch (err) {
+      console.error('Error retrieving lyrics:', err);
+      return null;
+    }
+  };
+
   const selectSong = async (songId) => {
     try {
       let file = fileMapRef.current.get(songId);
@@ -158,10 +188,11 @@ export function MusicProvider({ children }) {
   const clearLibrary = async () => {
     try {
       setError(null);
-      // Delete all songs and their files
+      // Delete all songs, their files, and associated lyrics
       for (const song of songs) {
         await deleteSong(song.id);
         fileMapRef.current.delete(song.id);
+        await addFile(`${song.id}-lyrics`, null); // Clear lyrics
       }
       // Reset playlists
       const updatedPlaylists = playlists.map(playlist => ({
@@ -199,9 +230,11 @@ export function MusicProvider({ children }) {
         fileMapRef,
         handleSelectDirectory,
         handleUpload,
+        handleUploadLyrics, // Added
+        getLyrics, // Added
         selectSong,
         addToPlaylist,
-        clearLibrary, // Added new function
+        clearLibrary,
       }}
     >
       {children}
