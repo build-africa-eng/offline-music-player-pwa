@@ -5,8 +5,8 @@ import './index.css';
 import { Workbox } from 'workbox-window';
 
 if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-  const wb = new Workbox('/service-worker.js');
-  wb.register().catch(err => console.error('Service Worker registration failed:', err));
+  const wb = new Workbox('/sw.js'); // Changed from /service-worker.js
+  wb.register().catch((err) => console.error('Service Worker registration failed:', err));
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
