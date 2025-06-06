@@ -14,37 +14,36 @@ function Equalizer({ audioRef, onClose }) {
   const filtersRef = useState([]);
 
   useEffect(() => {
-    if (!audioRef.current) return;
+  if (!audioRef.current || !audioRef.current._howl || !audioRef.current._howl._sounds[0]?._node) return;
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    audioContextRef.current = audioContext;
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  audioContextRef.current = audioContext;
 
-    const source = audioContext.createMediaElementSource(audioRef.current._howl._sounds[0]._node);
-    const filters = frequencies.map((gain, index) => {
-      const filter = audioContext.createBiquadFilter();
-      filter.type = 'peaking';
-      filter.frequency.value = [60, 230, 910, 3000, 14000][index]; // Frequency bands
-      filter.Q.value = 1;
-      filter.gain.value = gain;
-      return filter;
-    });
+  const source = audioContext.createMediaElementSource(audioRef.current._howl._sounds[0]._node);
+  const filters = frequencies.map((gain, index) => {
+    const filter = audioContext.createBiquadFilter();
+    filter.type = 'peaking';
+    filter.frequency.value = [60, 230, 910, 3000, 14000][index];
+    filter.Q.value = 1;
+    filter.gain.value = gain;
+    return filter;
+  });
 
-    filtersRef.current = filters;
+  filtersRef.current = filters;
 
-    // Chain filters: source -> filter1 -> filter2 -> ... -> destination
-    source.connect(filters[0]);
-    filters.reduce((prev, curr) => {
-      prev.connect(curr);
-      return curr;
-    });
-    filters[filters.length - 1].connect(audioContext.destination);
+  source.connect(filters[0]);
+  filters.reduce((prev, curr) => {
+    prev.connect(curr);
+    return curr;
+  });
+  filters[filters.length - 1].connect(audioContext.destination);
 
-    return () => {
-      filters.forEach((filter) => filter.disconnect());
-      source.disconnect();
-      audioContext.close();
-    };
-  }, [audioRef]);
+  return () => {
+    filters.forEach((filter) => filter.disconnect());
+    source.disconnect();
+    audioContext.close();
+  };
+}, [audioRef]);
 
   useEffect(() => {
     if (filtersRef.current.length) {
