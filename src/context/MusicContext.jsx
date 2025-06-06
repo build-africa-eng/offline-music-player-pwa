@@ -12,7 +12,10 @@ export function MusicProvider({ children }) {
   const [queue, setQueue] = useState([]);
   const [currentFile, setCurrentFile] = useState(null);
   const [error, setError] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false); // Add playback state
+  const [playerMode, setPlayerMode] = useState('mini'); // 'mini' or 'full'
   const fileMapRef = useRef(new Map());
+  const audioRef = useRef(new Audio()); // Ref for audio element
 
   // Load initial data from IndexedDB
   useEffect(() => {
@@ -45,6 +48,22 @@ export function MusicProvider({ children }) {
     loadData();
   }, []);
 
+  // Update audio source when currentFile changes
+  useEffect(() => {
+    if (currentFile?.blob) {
+      const url = URL.createObjectURL(currentFile.blob);
+      audioRef.current.src = url;
+      if (isPlaying) {
+        audioRef.current.play().catch((err) => {
+          console.error('Error playing audio:', err);
+          setError('Failed to play audio.');
+          toast.error('Failed to play audio.');
+        });
+      }
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [currentFile]);
+
   // Handle single file upload
   const handleUpload = async (file) => {
     try {
@@ -55,7 +74,7 @@ export function MusicProvider({ children }) {
         id: crypto.randomUUID(),
         title: file.name.replace(/\.[^/.]+$/, ''),
         artist: 'Unknown',
-        duration: 0, // Placeholder; can be updated with metadata parsing
+        duration: 0,
       };
       await addSong(song);
       await addFile(song.id, file);
@@ -64,7 +83,7 @@ export function MusicProvider({ children }) {
       setQueue((prev) => [...prev, song]);
     } catch (err) {
       console.error('Error uploading file:', err);
-      throw err; // Let UploadComponent handle the toast
+      throw err;
     }
   };
 
@@ -108,6 +127,7 @@ export function MusicProvider({ children }) {
         const fileData = await getFile(songId);
         if (fileData?.blob) {
           setCurrentFile({ ...song, blob: fileData.blob });
+          setIsPlaying(true);
         } else {
           setError('File not found for selected song.');
           toast.error('File not found.');
@@ -118,6 +138,31 @@ export function MusicProvider({ children }) {
       setError('Failed to select song.');
       toast.error('Failed to select song.');
     }
+  };
+
+  // Toggle play/pause
+  const togglePlayPause = () => {
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch((err) => {
+        console.error('Error playing audio:', err);
+        setError('Failed to play audio.');
+        toast.error('Failed to play audio.');
+      });
+      setIsPlaying(true);
+    }
+  };
+
+  // Skip to next/previous song
+  const skipTrack = (direction) => {
+    if (!currentFile || !queue.length) return;
+    const currentIndex = queue.findIndex((song) => song.id === currentFile.id);
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    if (newIndex < 0) newIndex = queue.length - 1;
+    if (newIndex >= queue.length) newIndex = 0;
+    selectSong(queue[newIndex].id);
   };
 
   // Add song to playlist
@@ -156,6 +201,8 @@ export function MusicProvider({ children }) {
         setPlaylists([]);
         setQueue([]);
         setCurrentFile(null);
+        setIsPlaying(false);
+        audioRef.current.pause();
         toast.success('Library cleared successfully');
       }
     } catch (err) {
@@ -171,12 +218,17 @@ export function MusicProvider({ children }) {
     queue,
     currentFile,
     error,
+    isPlaying,
+    playerMode,
     setQueue,
     setCurrentFile,
     setError,
-    handleUpload, // Added for UploadComponent
+    setPlayerMode, // Expose to toggle mini/full
+    handleUpload,
     handleSelectDirectory,
     selectSong,
+    togglePlayPause,
+    skipTrack,
     addToPlaylist,
     clearLibrary,
   };
