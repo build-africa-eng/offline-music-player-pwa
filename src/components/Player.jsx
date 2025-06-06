@@ -70,25 +70,31 @@ function Player({ queue, currentFile, fileMapRef, selectSong, waveform }) {
               onSeek={handleSeek}
             />
             <div className="flex items-center gap-2">
-              <label className="cursor-pointer flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary">
-                <Upload className="w-4 h-4" />
-                Upload Lyrics (.lrc)
-                <input
-                  type="file"
-                  accept=".lrc"
-                  onChange={handleLyricsUpload}
-                  className="hidden"
-                />
-              </label>
-              {getLyrics(currentFile.id) && (
-                <button
-                  onClick={() => setShowLyrics(!showLyrics)}
-                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-primary"
-                >
-                  {showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
-                </button>
-              )}
-            </div>
+  <label
+    className="cursor-pointer flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary"
+    htmlFor="lyrics-upload"
+  >
+    <Upload className="w-4 h-4" />
+    Upload Lyrics (.lrc)
+    <input
+      id="lyrics-upload"
+      type="file"
+      accept=".lrc"
+      onChange={handleLyricsUpload}
+      className="hidden"
+      aria-label="Upload lyrics file in LRC format"
+    />
+  </label>
+  {getLyrics(currentFile.id) && (
+    <button
+      onClick={() => setShowLyrics(!showLyrics)}
+      className="text-sm text-gray-500 dark:text-gray-400 hover:text-primary"
+      aria-label={showLyrics ? 'Hide lyrics' : 'Show lyrics'}
+    >
+      {showLyrics ? 'Hide Lyrics' : 'Show Lyrics'}
+    </button>
+  )}
+</div>
             {showLyrics && <LyricsDisplay songId={currentFile.id} />}
             <PlayerControls
               isPlaying={isPlaying}
