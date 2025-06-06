@@ -11,8 +11,8 @@
     "format": "prettier --write src/**/*.{js,jsx,css}"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "music-metadata": "^11.2.3",
     "idb": "^8.0.3"
   },
