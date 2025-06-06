@@ -9,15 +9,14 @@ function MusicLibrary() {
   const [prompted, setPrompted] = useState(false);
 
   useEffect(() => {
-    if (songs.length > 0 && !prompted) {
-      handleSelectDirectory();
-      setPrompted(true);
+    if (songs.length === 0 && !prompted) {
+      setPrompted(true); // Only prompt once if no songs
     }
-  }, [songs, prompted, handleSelectDirectory]);
+  }, [songs, prompted]);
 
   const handleSongSelect = (songId) => {
     selectSong(songId);
-    setQueue(songs); // Reset queue to library
+    setQueue(songs);
   };
 
   return (
@@ -44,7 +43,7 @@ function MusicLibrary() {
           className="p-1 text-xs sm:text-sm border border-gray-300 rounded bg-background/80 text-text focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Select...</option>
-          {playlists.map(p => (
+          {playlists.map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
@@ -53,8 +52,8 @@ function MusicLibrary() {
         <p className="text-text text-xs sm:text-sm">No songs found. Select a music folder or upload files.</p>
       ) : (
         <ul className="space-y-2">
-          {songs.map(song => {
-            const playlist = playlists.find(p => p.id === selectedPlaylistId);
+          {songs.map((song) => {
+            const playlist = playlists.find((p) => p.id === selectedPlaylistId);
             const isInPlaylist = playlist?.songIds.includes(song.id);
             return (
               <li key={song.id} className="flex items-center justify-between flex-wrap gap-2">
