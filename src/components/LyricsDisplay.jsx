@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useMusic } from '../../context/MusicContext';
+import { useMusic } from '../context/MusicContext';
 import Lyric from 'lyric-parser';
 
 const LyricsDisplay = ({ songId }) => {
