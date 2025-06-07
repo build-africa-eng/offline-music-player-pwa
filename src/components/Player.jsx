@@ -51,10 +51,15 @@ function Player() {
     handleSeek,
   } = usePlayerLogic({ queue, currentFile, fileMapRef, selectSong });
 
-  // Manage all side effects in a single useEffect
+  // Manage all side effects in a single useEffect with null check
   useEffect(() => {
-    // Sync isPlaying with usePlayerLogic
-    if (isPlaying !== audioRef.current.paused) {
+    if (!audioRef.current) {
+      console.warn('audioRef.current is null, skipping playback sync');
+      return;
+    }
+
+    // Sync isPlaying with audioRef
+    if (isPlaying !== !audioRef.current.paused) {
       togglePlayPause();
     }
 
@@ -78,7 +83,6 @@ function Player() {
     }
   };
 
-  // Render logic outside hook calls
   const renderPlayer = () => {
     if (!currentFile) {
       return (
