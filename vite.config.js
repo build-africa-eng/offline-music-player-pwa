@@ -1,8 +1,37 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), VitePWA({
+    registerType: 'autoUpdate',
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,png,ico}'],
+      cleanupOutdatedCaches: true,
+      clientsClaim: true,
+      skipWaiting: true,
+    },
+    manifest: {
+      name: 'Offline Music Player',
+      short_name: 'MusicPWA',
+      start_url: '/',
+      display: 'standalone',
+      theme_color: '#ffffff',
+      background_color: '#ffffff',
+      icons: [
+        {
+          src: 'icon.png',
+          sizes: '192x192',
+          type: 'image/png',
+        },
+        {
+          src: 'logo.png',
+          sizes: '512x512',
+          type: 'image/png',
+        },
+      ],
+    },
+  })],
   build: {
     outDir: 'dist',
     rollupOptions: {
@@ -16,5 +45,5 @@ export default defineConfig({
       },
     },
   },
-  base: '/', // Ensure base URL matches deployment path
+  base: '/',
 });
