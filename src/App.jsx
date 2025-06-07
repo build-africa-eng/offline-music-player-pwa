@@ -1,5 +1,5 @@
 import React from 'react';
-import { MusicProvider } from './context/MusicContext';
+import { useMusic } from './context/MusicContext';
 import MusicLibrary from './components/MusicLibrary';
 import Player from './components/Player';
 
@@ -25,11 +25,4 @@ function App() {
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <MusicProvider>
-      <App />
-    </MusicProvider>
-  </React.StrictMode>
-);
+export default App;
