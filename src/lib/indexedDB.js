@@ -17,20 +17,22 @@ async function initDB() {
           songStore.openCursor().onsuccess = (event) => {
             const cursor = event.target.result;
             if (cursor) {
-              filesStore.put({ id: cursor.value.id, blob: null });
+              filesStore.put({ id: cursor.value.id, blob: null }).onsuccess = () => {
+                console.log(`Migrated file entry for song ${cursor.value.id}`);
+              };
               cursor.continue();
             }
           };
         }
       },
       blocked() {
-        console.warn('Database upgrade blocked by an open connection. Please close other tabs.');
+        console.warn('Database upgrade blocked. Please close other tabs.');
       },
       blocking() {
-        console.warn('A connection is blocking the database upgrade. Closing it.');
+        console.warn('Blocking database upgrade. Closing connection.');
       },
       terminated() {
-        console.warn('Database connection terminated unexpectedly.');
+        console.warn('Database connection terminated.');
       },
     });
   } catch (err) {
@@ -70,7 +72,7 @@ export async function deleteSong(songId) {
   const playlists = await playlistStore.getAll();
   await Promise.all(
     playlists.map(async (playlist) => {
-      if (playlist.songIds.includes(songId)) {
+      if (playlist.songIds?.includes(songId)) {
         playlist.songIds = playlist.songIds.filter((id) => id !== songId);
         await playlistStore.put(playlist);
       }
@@ -78,6 +80,7 @@ export async function deleteSong(songId) {
   );
 
   await tx.done;
+  console.log(`Deleted song ${songId} and associated data`);
 }
 
 // FILES
@@ -89,6 +92,9 @@ export async function addFile(fileId, blob) {
 export async function getFile(fileId) {
   const db = await initDB();
   const file = await db.get('files', fileId);
+  if (!file) {
+    console.warn(`No file found for ID ${fileId}`);
+  }
   return file || null;
 }
 
