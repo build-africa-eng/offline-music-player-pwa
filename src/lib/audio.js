@@ -1,3 +1,4 @@
+// src/lib/audio.js
 export async function applyCrossfade(fromHowl, toHowl, callback, duration = 1000) {
   if (!fromHowl || !toHowl) return;
 
