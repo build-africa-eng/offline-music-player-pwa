@@ -1,7 +1,7 @@
-import Howl from 'howler';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { applyCrossfade } from '../lib/audio';
+import Howl from 'howler';
 
 export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,7 +18,7 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
     if (currentFile && fileMapRef.current.has(currentFile.id)) {
       const file = fileMapRef.current.get(currentFile.id);
       const audioSrc = URL.createObjectURL(file);
-      howlRef.current = new Howl.Howl({ // Adjusted to Howl.Howl
+      howlRef.current = new Howl({
         src: [audioSrc],
         format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
         html5: true,
@@ -42,10 +42,12 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
   useEffect(() => {
     if (!howlRef.current) return;
     const updateProgress = () => {
-      setProgress(howlRef.current.seek() / howlRef.current.duration());
+      if (howlRef.current.duration()) {
+        setProgress(howlRef.current.seek() / howlRef.current.duration());
+      }
     };
     howlRef.current.on('play', updateProgress);
-    howlRef.current.on('timeupdate', updateProgress);
+    howlRef.current.on('timeupdate', updateProgress); // Note: Howler may not support 'timeupdate' natively
     return () => {
       howlRef.current.off('play', updateProgress);
       howlRef.current.off('timeupdate', updateProgress);
@@ -64,26 +66,24 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
     if (!howlRef.current) return;
     if (isPlaying) {
       howlRef.current.pause();
-      setIsPlaying(false);
     } else {
       howlRef.current.play().catch((err) => {
         toast.error('Playback error: ' + err.message);
       });
-      setIsPlaying(true);
     }
+    setIsPlaying(!isPlaying);
   };
 
   const handleNextTrack = async () => {
     if (!queue.length || !currentFile) return;
-    let nextIndex;
-    const currentIndex = queue.findIndex((song) => song.id === currentFile.id);
+    let nextIndex = queue.findIndex((song) => song.id === currentFile.id);
 
     if (shuffle && queue.length > 1) {
       do {
         nextIndex = Math.floor(Math.random() * queue.length);
-      } while (nextIndex === currentIndex);
+      } while (nextIndex === queue.findIndex((song) => song.id === currentFile.id));
     } else {
-      nextIndex = currentIndex < queue.length - 1 ? currentIndex + 1 : 0;
+      nextIndex = nextIndex < queue.length - 1 ? nextIndex + 1 : 0;
     }
 
     const nextSong = queue[nextIndex];
@@ -93,112 +93,68 @@ export function usePlayerLogic({ queue, currentFile, fileMapRef, selectSong }) {
         toast.error('Next song file not found.');
         return;
       }
-      try {
-        const nextAudioSrc = URL.createObjectURL(nextFile);
-        const nextHowl = new Howl.Howl({
-          src: [nextAudioSrc],
-          format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
-          html5: true,
-          onload: () => {
-            if (crossfadeEnabled) {
-              applyCrossfade(howlRef.current, nextHowl, () => {
-                howlRef.current = nextHowl;
-                selectSong(nextSong.id);
-                setIsPlaying(true);
-              }, 2000);
-            } else {
-              howlRef.current?.stop();
-              howlRef.current = nextHowl;
-              selectSong(nextSong.id);
-              nextHowl.play();
-              setIsPlaying(true);
-            }
-          },
-          onloaderror: (id, error) => {
-            toast.error(`Failed to load next song: ${error}`);
-          },
-        });
-      } catch (err) {
-        console.error('Crossfade error:', err);
-        toast.error('Failed to play next song.');
+      const nextAudioSrc = URL.createObjectURL(nextFile);
+      const nextHowl = new Howl({
+        src: [nextAudioSrc],
+        format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
+        html5: true,
+      });
+      if (crossfadeEnabled) {
+        applyCrossfade(howlRef.current, nextHowl, () => {
+          howlRef.current?.unload();
+          howlRef.current = nextHowl;
+          selectSong(nextSong.id);
+          nextHowl.play();
+        }, 2000);
+      } else {
+        howlRef.current?.stop();
+        howlRef.current?.unload();
+        howlRef.current = nextHowl;
+        selectSong(nextSong.id);
+        nextHowl.play();
       }
+      setIsPlaying(true);
     }
   };
 
   const handlePreviousTrack = async () => {
     if (!queue.length || !currentFile) return;
-    let prevIndex;
-    const currentIndex = queue.findIndex((song) => song.id === currentFile.id);
-
-    if (shuffle && queue.length > 1) {
-      do {
-        prevIndex = Math.floor(Math.random() * queue.length);
-      } while (prevIndex === currentIndex);
-    } else {
-      prevIndex = currentIndex > 0 ? currentIndex - 1 : queue.length - 1;
-    }
-
+    let prevIndex = queue.findIndex((song) => song.id === currentFile.id);
+    prevIndex = prevIndex > 0 ? prevIndex - 1 : queue.length - 1;
     const prevSong = queue[prevIndex];
     if (prevSong) {
-      const prevFile = fileMapRef.current.get(prevSong.id);
-      if (!prevFile) {
-        toast.error('Previous song file not found.');
-        return;
-      }
-      try {
-        const prevAudioSrc = URL.createObjectURL(prevFile);
-        const prevHowl = new Howl.Howl({
-          src: [prevAudioSrc],
-          format: ['mp3', 'wav', 'aac', 'flac', 'ogg'],
-          html5: true,
-          onload: () => {
-            if (crossfadeEnabled) {
-              applyCrossfade(howlRef.current, prevHowl, () => {
-                howlRef.current = prevHowl;
-                selectSong(prevSong.id);
-                setIsPlaying(true);
-              }, 2000);
-            } else {
-              howlRef.current?.stop();
-              howlRef.current = prevHowl;
-              selectSong(prevSong.id);
-              prevHowl.play();
-              setIsPlaying(true);
-            }
-          },
-          onloaderror: (id, error) => {
-            toast.error(`Failed to load previous song: ${error}`);
-          },
-        });
-      } catch (err) {
-        console.error('Crossfade error:', err);
-        toast.error('Failed to play previous song.');
-      }
+      selectSong(prevSong.id);
+      if (howlRef.current) howlRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleSeek = (newProgress) => {
+    if (howlRef.current && duration) {
+      const newTime = newProgress * duration;
+      howlRef.current.seek(newTime);
     }
   };
 
   const handleTrackEnd = () => {
-    if (repeat === 'one') {
-      howlRef.current?.seek(0);
-      howlRef.current?.play();
-      setIsPlaying(true);
-    } else if (repeat === 'all' || queue.length > 1) {
+    if (repeat === 'all' && queue.length > 1) {
       handleNextTrack();
+    } else if (repeat === 'one') {
+      howlRef.current.seek(0);
+      howlRef.current.play();
     } else {
       setIsPlaying(false);
     }
   };
 
-  const handleSeek = (newProgress) => {
-    if (howlRef.current) {
-      const newTime = newProgress * howlRef.current.duration();
-      howlRef.current.seek(newTime);
-      setProgress(newProgress);
-    }
-  };
+  useEffect(() => {
+    localStorage.setItem('shuffle', shuffle);
+    localStorage.setItem('repeat', repeat);
+    localStorage.setItem('crossfadeEnabled', crossfadeEnabled);
+  }, [shuffle, repeat, crossfadeEnabled]);
 
   return {
-    audioRef: howlRef,
+    audioRef: howlRef, // Return howlRef as audioRef for consistency
     isPlaying,
     progress,
     duration,
