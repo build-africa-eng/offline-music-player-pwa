@@ -22,9 +22,8 @@ function Player() {
     setPlayerMode,
     getLyrics,
     handleUploadLyrics,
-    queue,
     fileMapRef,
-    selectSong,
+    queue,
   } = useMusic();
 
   const [showEqualizer, setShowEqualizer] = useState(false);
@@ -46,35 +45,35 @@ function Player() {
     setRepeat,
     crossfadeEnabled,
     setCrossfadeEnabled,
+    handlePlayPause: playerLogicPlayPause,
     handleNextTrack,
     handlePreviousTrack,
     handleSeek,
-  } = usePlayerLogic({ queue, currentFile, fileMapRef, selectSong });
+  } = usePlayerLogic({
+    queue,
+    currentFile,
+    fileMapRef,
+    selectSong: useMusic().selectSong,
+  });
 
-  // Manage all side effects in a single useEffect with null check
+  // Sync isPlaying between MusicContext and usePlayerLogic
   useEffect(() => {
-    if (!audioRef.current) {
-      console.warn('audioRef.current is null, skipping playback sync');
-      return;
+    if (audioRef.current && isPlaying !== audioRef.current.playing()) {
+      playerLogicPlayPause();
     }
+  }, [isPlaying, audioRef, playerLogicPlayPause]);
 
-    // Sync isPlaying with audioRef
-    if (isPlaying !== !audioRef.current.paused) {
-      togglePlayPause();
-    }
-
-    // Handle body scroll for full player
+  // Prevent body scroll when full player is open
+  useEffect(() => {
     if (playerMode === 'full') {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-
-    // Cleanup
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isPlaying, playerMode, togglePlayPause, audioRef]);
+  }, [playerMode]);
 
   const handleLyricsUpload = (e) => {
     const file = e.target.files[0];
@@ -102,21 +101,21 @@ function Player() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => skipTrack('prev')}
+              onClick={() => handlePreviousTrack()}
               className="p-1 text-white hover:text-primary transition-colors"
               aria-label="Previous track"
             >
               <SkipBack className="w-5 h-5" />
             </button>
             <button
-              onClick={togglePlayPause}
+              onClick={playerLogicPlayPause}
               className="p-1 text-white hover:text-primary transition-colors"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
               {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
             </button>
             <button
-              onClick={() => skipTrack('next')}
+              onClick={handleNextTrack}
               className="p-1 text-white hover:text-primary transition-colors"
               aria-label="Next track"
             >
@@ -189,9 +188,9 @@ function Player() {
           {showLyrics && <LyricsDisplay songId={currentFile.id} />}
           <PlayerControls
             isPlaying={isPlaying}
-            onPlayPause={togglePlayPause}
-            onNext={() => skipTrack('next')}
-            onPrev={() => skipTrack('prev')}
+            onPlayPause={playerLogicPlayPause}
+            onNext={handleNextTrack}
+            onPrev={handlePreviousTrack}
             shuffle={shuffle}
             setShuffle={setShuffle}
             repeat={repeat}
@@ -225,7 +224,7 @@ function Player() {
           <NowPlayingModal
             metadata={currentFile}
             isPlaying={isPlaying}
-            onPlayPause={togglePlayPause}
+            onPlayPause={playerLogicPlayPause}
           />
         )}
       </div>
