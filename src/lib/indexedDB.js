@@ -1,126 +1,119 @@
-import { openDB } from 'idb';
+const DB_NAME = 'MusicPlayerDB';
+const DB_VERSION = 1;
 
-const DB_NAME = 'music_db';
-const DB_VERSION = 3;
+let db;
 
-async function initDB() {
-  try {
-    return await openDB(DB_NAME, DB_VERSION, {
-      upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          db.createObjectStore('songs', { keyPath: 'id' });
-          db.createObjectStore('playlists', { keyPath: 'id' });
-        }
-        if (oldVersion < 3) {
-          const filesStore = db.createObjectStore('files', { keyPath: 'id' });
-          const songStore = db.transaction.objectStore('songs');
-          songStore.openCursor().onsuccess = (event) => {
-            const cursor = event.target.result;
-            if (cursor) {
-              filesStore.put({ id: cursor.value.id, blob: null }).onsuccess = () => {
-                console.log(`Migrated file entry for song ${cursor.value.id}`);
-              };
-              cursor.continue();
-            }
-          };
-        }
-      },
-      blocked() {
-        console.warn('Database upgrade blocked. Please close other tabs.');
-      },
-      blocking() {
-        console.warn('Blocking database upgrade. Closing connection.');
-      },
-      terminated() {
-        console.warn('Database connection terminated.');
-      },
-    });
-  } catch (err) {
-    console.error('Failed to initialize IndexedDB:', err);
-    throw err;
-  }
+export function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result;
+
+      // Create object stores if they don't exist
+      if (!database.objectStoreNames.contains('songs')) {
+        database.createObjectStore('songs', { keyPath: 'id', autoIncrement: true })
+          .createIndex('title', 'title', { unique: false });
+      }
+      if (!database.objectStoreNames.contains('playlists')) {
+        database.createObjectStore('playlists', { keyPath: 'id', autoIncrement: true })
+          .createIndex('name', 'name', { unique: false });
+      }
+    };
+
+    request.onsuccess = (event) => {
+      db = event.target.result;
+      console.log('IndexedDB initialized successfully');
+      resolve(db);
+    };
+
+    request.onerror = (event) => {
+      console.error('Failed to initialize IndexedDB:', event.target.error);
+      reject(event.target.error);
+    };
+  });
 }
 
-// SONGS
 export async function addSong(song) {
-  const db = await initDB();
-  return await db.put('songs', song);
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readwrite');
+    const store = transaction.objectStore('songs');
+    const request = store.add(song);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export async function getSongs() {
-  const db = await initDB();
-  const songs = await db.getAll('songs');
-  return songs.sort((a, b) => a.title.localeCompare(b.title));
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readonly');
+    const store = transaction.objectStore('songs');
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-export async function getSongById(songId) {
-  const db = await initDB();
-  return await db.get('songs', songId);
+export async function getSongById(id) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readonly');
+    const store = transaction.objectStore('songs');
+    const request = store.get(id);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-export async function deleteSong(songId) {
-  const db = await initDB();
-  const tx = db.transaction(['songs', 'playlists', 'files'], 'readwrite');
-  const [songStore, playlistStore, fileStore] = [
-    tx.objectStore('songs'),
-    tx.objectStore('playlists'),
-    tx.objectStore('files'),
-  ];
-
-  await Promise.all([songStore.delete(songId), fileStore.delete(songId)]);
-
-  const playlists = await playlistStore.getAll();
-  await Promise.all(
-    playlists.map(async (playlist) => {
-      if (playlist.songIds?.includes(songId)) {
-        playlist.songIds = playlist.songIds.filter((id) => id !== songId);
-        await playlistStore.put(playlist);
-      }
-    })
-  );
-
-  await tx.done;
-  console.log(`Deleted song ${songId} and associated data`);
-}
-
-// FILES
-export async function addFile(fileId, blob) {
-  const db = await initDB();
-  return await db.put('files', { id: fileId, blob });
-}
-
-export async function getFile(fileId) {
-  const db = await initDB();
-  const file = await db.get('files', fileId);
-  if (!file) {
-    console.warn(`No file found for ID ${fileId}`);
-  }
-  return file || null;
-}
-
-// PLAYLISTS
 export async function addPlaylist(playlist) {
-  const db = await initDB();
-  return await db.put('playlists', playlist);
-}
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['playlists'], 'readwrite');
+    const store = transaction.objectStore('playlists');
+    const request = store.add({ ...playlist, songIds: playlist.songIds || [] });
 
-export async function updatePlaylist(playlist) {
-  const db = await initDB();
-  return await db.put('playlists', playlist);
-}
-
-export async function deletePlaylist(playlistId) {
-  const db = await initDB();
-  return await db.delete('playlists', playlistId);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export async function getPlaylists() {
-  const db = await initDB();
-  const playlists = await db.getAll('playlists');
-  return playlists.sort((a, b) => a.name.localeCompare(b.name));
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['playlists'], 'readonly');
+    const store = transaction.objectStore('playlists');
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-export async function getPlaylistById(id) {
-  const db = await initDB();
-  return await db.get('playlists', id);
+export async function updatePlaylist(playlist) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['playlists'], 'readwrite');
+    const store = transaction.objectStore('playlists');
+    const request = store.put(playlist);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function deletePlaylist(id) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['playlists'], 'readwrite');
+    const store = transaction.objectStore('playlists');
+    const request = store.delete(id);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
 }
