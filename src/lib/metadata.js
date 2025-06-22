@@ -1,20 +1,17 @@
-import jsmediatags from 'jsmediatags';
+import { parseBlob } from 'music-metadata';
 
 export async function extractMetadata(file) {
-  return new Promise((resolve) => {
-    jsmediatags.read(file, {
-      onSuccess: (tag) => {
-        resolve({
-          title: tag.tags.title || file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
-          artist: tag.tags.artist || 'Unknown',
-        });
-      },
-      onError: () => {
-        resolve({
-          title: file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
-          artist: 'Unknown',
-        });
-      },
-    });
-  });
+  try {
+    const metadata = await parseBlob(file);
+    return {
+      title: metadata.common.title || file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
+      artist: metadata.common.artist || 'Unknown',
+    };
+  } catch (err) {
+    console.warn('Metadata extraction failed:', err);
+    return {
+      title: file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
+      artist: 'Unknown',
+    };
+  }
 }
