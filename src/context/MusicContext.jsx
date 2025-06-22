@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { toast } from 'react-hot-toast';
+import { selectMusicDirectory } from '../lib/fileSystem';
 import {
   addSong, getSongs, deleteSong, addFile, getFile, addPlaylist, updatePlaylist, deletePlaylist, getPlaylists, getSongById,
 } from '../lib/indexedDB';
-import { toast } from 'react-hot-toast';
 
 const MusicContext = createContext();
 
@@ -16,8 +17,12 @@ export function MusicProvider({ children }) {
   const [playerMode, setPlayerMode] = useState('mini');
   const fileMapRef = useRef(new Map());
   const audioRef = useRef(new Audio());
+  const isInitialized = useRef(false);
 
   useEffect(() => {
+    if (isInitialized.current) return;
+    isInitialized.current = true;
+
     async function loadData() {
       try {
         console.log('Initializing IndexedDB and loading data...');
@@ -25,53 +30,31 @@ export function MusicProvider({ children }) {
         if (!Array.isArray(songList) || !Array.isArray(playlistList)) {
           throw new Error('Invalid data format from IndexedDB');
         }
-        setSongs(songList);
-        setPlaylists(playlistList);
-        setQueue(songList);
 
+        const validSongs = [];
         for (const song of songList) {
-          try {
-            const fileData = await getFile(song.id);
-            if (fileData?.blob) {
-              fileMapRef.current.set(song.id, fileData.blob);
-            } else {
-              console.warn(`No blob found for song ${song.id}, attempting to reload file...`);
-              const reloadedFile = await reloadFile(song.id);
-              if (reloadedFile?.blob) {
-                fileMapRef.current.set(song.id, reloadedFile.blob);
-              }
-            }
-          } catch (fileErr) {
-            console.error(`Failed to load file for song ${song.id}:`, fileErr);
+          const fileData = await getFile(song.id);
+          if (fileData?.blob) {
+            fileMapRef.current.set(song.id, fileData.blob);
+            validSongs.push(song);
+          } else {
+            console.warn(`No blob found for song ${song.id}, removing from songs list`);
+            await deleteSong(song.id);
           }
         }
-        console.log('Data loaded successfully:', { songCount: songList.length, playlistCount: playlistList.length });
+
+        setSongs(validSongs);
+        setPlaylists(playlistList);
+        setQueue(validSongs);
+        console.log('Data loaded successfully:', { songCount: validSongs.length, playlistCount: playlistList.length });
       } catch (err) {
         console.error('Error loading data from IndexedDB:', err);
         setError('Failed to load data. Please reselect your music folder or clear the database.');
-        setSongs([]);
-        setPlaylists([]);
-        setQueue([]);
-        toast.error('Failed to load data. Check console for details or clear the database.');
+        toast.error('Failed to load data. Check console for details.');
       }
     }
     loadData();
   }, []);
-
-  // Helper function to reload a file (optional, based on your needs)
-  async function reloadFile(songId) {
-    try {
-      const song = await getSongById(songId);
-      if (song) {
-        const fileData = await getFile(songId);
-        return fileData || null;
-      }
-      return null;
-    } catch (err) {
-      console.error('Error reloading file:', err);
-      return null;
-    }
-  }
 
   useEffect(() => {
     if (currentFile?.blob) {
@@ -88,56 +71,46 @@ export function MusicProvider({ children }) {
     }
   }, [currentFile]);
 
-  const handleUpload = async (file) => {
-    try {
-      if (!file) throw new Error('No file provided');
-      if (!file.type.startsWith('audio/')) throw new Error('Not an audio file');
-
-      const song = {
-        id: crypto.randomUUID(),
-        title: file.name.replace(/\.[^/.]+$/, ''),
-        artist: 'Unknown',
-        duration: 0,
-      };
-      await addSong(song);
-      await addFile(song.id, file);
-      fileMapRef.current.set(song.id, file);
-      setSongs((prev) => [...prev, song]);
-      setQueue((prev) => [...prev, song]);
-    } catch (err) {
-      console.error('Error uploading file:', err);
-      throw err;
-    }
-  };
-
   const handleSelectDirectory = async (event) => {
     try {
-      const files = event.target.files || [];
-      if (!files.length) throw new Error('No files selected');
+      let files = [];
+      if (event?.target?.files) {
+        files = Array.from(event.target.files).filter(file => file.type.startsWith('audio/'));
+      } else {
+        const result = await selectMusicDirectory();
+        if (result && result.files) {
+          files = result.files;
+        }
+      }
+
+      if (!files.length) {
+        setError('No audio files selected');
+        toast.error('No audio files selected');
+        return;
+      }
 
       const newSongs = [];
-      for (const file of files) {
-        if (file.type.startsWith('audio/')) {
-          const song = {
-            id: crypto.randomUUID(),
-            title: file.name.replace(/\.[^/.]+$/, ''),
-            artist: 'Unknown',
-            duration: 0,
-          };
-          await addSong(song);
-          await addFile(song.id, file);
-          newSongs.push(song);
-          fileMapRef.current.set(song.id, file);
-        }
+      for (const fileData of files) {
+        const { file, title, artist } = fileData;
+        const song = {
+          id: crypto.randomUUID(),
+          title: title || file.name.replace(/\.[^/.]+$/, ''),
+          artist: artist || 'Unknown',
+          duration: 0,
+        };
+        await addSong(song);
+        await addFile(song.id, file);
+        fileMapRef.current.set(song.id, file);
+        newSongs.push(song);
       }
 
       setSongs((prev) => [...prev, ...newSongs]);
       setQueue((prev) => [...prev, ...newSongs]);
-      toast.success(`Added ${newSongs.length} song(s) successfully`);
+      toast.success(`Added ${newSongs.length} song(s)`);
     } catch (err) {
       console.error('Error selecting directory or uploading files:', err);
-      setError('Failed to upload songs. Please try again.');
-      toast.error('Failed to upload songs.');
+      setError('Failed to add songs');
+      toast.error('Failed to add songs');
     }
   };
 
@@ -145,19 +118,19 @@ export function MusicProvider({ children }) {
     try {
       const song = await getSongById(songId);
       if (song) {
-        const fileData = await getFile(songId);
-        if (fileData?.blob) {
-          setCurrentFile({ ...song, blob: fileData.blob });
+        const fileData = fileMapRef.current.get(songId) || (await getFile(songId))?.blob;
+        if (fileData) {
+          setCurrentFile({ ...song, blob: fileData });
           setIsPlaying(true);
         } else {
-          setError('File not found for selected song.');
-          toast.error('File not found.');
+          setError('File not found for selected song');
+          toast.error('File not found');
         }
       }
     } catch (err) {
       console.error('Error selecting song:', err);
-      setError('Failed to select song.');
-      toast.error('Failed to select song.');
+      setError('Failed to select song');
+      toast.error('Failed to select song');
     }
   };
 
@@ -168,8 +141,8 @@ export function MusicProvider({ children }) {
     } else {
       audioRef.current.play().catch((err) => {
         console.error('Error playing audio:', err);
-        setError('Failed to play audio.');
-        toast.error('Failed to play audio.');
+        setError('Failed to play audio');
+        toast.error('Failed to play audio');
       });
       setIsPlaying(true);
     }
@@ -202,26 +175,24 @@ export function MusicProvider({ children }) {
       }
     } catch (err) {
       console.error('Error adding to playlist:', err);
-      setError('Failed to add song to playlist.');
-      toast.error('Failed to add song to playlist.');
+      setError('Failed to add song to playlist');
+      toast.error('Failed to add song to playlist');
     }
   };
 
   const clearLibrary = async () => {
     try {
-      if (window.confirm('Are you sure you want to clear your music library? This action cannot be undone.')) {
-        for (const song of songs || []) {
-          await deleteSong(song.id);
-        }
-        fileMapRef.current.clear();
-        setSongs([]);
-        setPlaylists([]);
-        setQueue([]);
-        setCurrentFile(null);
-        setIsPlaying(false);
-        audioRef.current.pause();
-        toast.success('Library cleared successfully');
+      for (const song of songs) {
+        await deleteSong(song.id);
       }
+      fileMapRef.current.clear();
+      setSongs([]);
+      setPlaylists([]);
+      setQueue([]);
+      setCurrentFile(null);
+      setIsPlaying(false);
+      audioRef.current.pause();
+      toast.success('Library cleared');
     } catch (err) {
       console.error('Error clearing library:', err);
       setError('Failed to clear library');
@@ -241,14 +212,13 @@ export function MusicProvider({ children }) {
     setCurrentFile,
     setError,
     setPlayerMode,
-    handleUpload,
     handleSelectDirectory,
     selectSong,
     togglePlayPause,
     skipTrack,
     addToPlaylist,
     clearLibrary,
-    fileMapRef, // Expose fileMapRef for usePlayerLogic
+    fileMapRef,
   };
 
   return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>;
