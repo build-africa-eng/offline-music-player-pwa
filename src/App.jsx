@@ -6,7 +6,6 @@ import { Trash2 } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeContext';
 
-// Lazy-load components
 const MusicLibrary = lazy(() => import('./components/MusicLibrary'));
 const Player = lazy(() => import('./components/Player'));
 const Playlist = lazy(() => import('./components/Playlist'));
@@ -17,11 +16,9 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const mainRef = useRef(null);
   const wallpapers = [
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    'https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    'https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
-    'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
   ];
   const [currentBackground, setCurrentBackground] = useState(wallpapers[0]);
   const [nextBackground, setNextBackground] = useState(null);
@@ -36,7 +33,7 @@ function AppContent() {
   useEffect(() => {
     const preloadImages = wallpapers.map((url) => {
       const img = new Image();
-      img.src = url + '&w=800'; // Lower resolution for performance
+      img.src = url;
       return new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
@@ -58,7 +55,7 @@ function AppContent() {
           setNextBackground(null);
         }, 500);
       }
-    }, 60000);
+    }, 120000); // Change every 2 minutes
 
     return () => clearInterval(interval);
   }, [currentBackground]);
@@ -122,7 +119,7 @@ function AppContent() {
                 e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="white" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>';
               }}
             />
-            <h1 className="text-2xl sm:text-3xl font-bold">Offline Music Player</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Audio Africa</h1>
           </div>
           {songs.length > 0 && (
             <button
