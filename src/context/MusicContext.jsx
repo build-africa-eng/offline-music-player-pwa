@@ -75,12 +75,18 @@ export function MusicProvider({ children }) {
     try {
       let files = [];
       if (event?.target?.files) {
-        files = Array.from(event.target.files).filter(file => file.type.startsWith('audio/'));
+        // Handle <input type="file">
+        files = Array.from(event.target.files)
+          .filter(file => file.type.startsWith('audio/'))
+          .map(file => ({ file, title: file.name.replace(/\.[^/.]+$/, ''), artist: 'Unknown' }));
+        console.log('File input selected:', files.length, 'files');
       } else {
+        // Handle directory picker
         const result = await selectMusicDirectory();
         if (result && result.files) {
           files = result.files;
         }
+        console.log('Directory picker selected:', files.length, 'files');
       }
 
       if (!files.length) {
@@ -91,25 +97,35 @@ export function MusicProvider({ children }) {
 
       const newSongs = [];
       for (const fileData of files) {
+        if (!fileData?.file) {
+          console.warn('Invalid file data:', fileData);
+          continue;
+        }
         const { file, title, artist } = fileData;
         const song = {
           id: crypto.randomUUID(),
-          title: title || file.name.replace(/\.[^/.]+$/, ''),
+          title: title || file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
           artist: artist || 'Unknown',
           duration: 0,
         };
+        console.log('Adding song:', song.title);
         await addSong(song);
         await addFile(song.id, file);
         fileMapRef.current.set(song.id, file);
         newSongs.push(song);
       }
 
-      setSongs((prev) => [...prev, ...newSongs]);
-      setQueue((prev) => [...prev, ...newSongs]);
-      toast.success(`Added ${newSongs.length} song(s)`);
+      if (newSongs.length) {
+        setSongs((prev) => [...prev, ...newSongs]);
+        setQueue((prev) => [...prev, ...newSongs]);
+        toast.success(`Added ${newSongs.length} song(s)`);
+      } else {
+        setError('No valid audio files found');
+        toast.error('No valid audio files found');
+      }
     } catch (err) {
       console.error('Error selecting directory or uploading files:', err);
-      setError('Failed to add songs');
+      setError('Failed to add songs: ' + err.message);
       toast.error('Failed to add songs');
     }
   };
