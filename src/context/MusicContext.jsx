@@ -75,23 +75,25 @@ export function MusicProvider({ children }) {
     try {
       let files = [];
       if (event?.target?.files) {
-        // Handle <input type="file">
         files = Array.from(event.target.files)
-          .filter(file => file.type.startsWith('audio/'))
-          .map(file => ({ file, title: file.name.replace(/\.[^/.]+$/, ''), artist: 'Unknown' }));
+          .filter(file => file.type.startsWith('audio/') && file instanceof File)
+          .map(file => ({
+            file,
+            title: file.name?.replace(/\.[^/.]+$/, '') || 'Untitled',
+            artist: 'Unknown',
+          }));
         console.log('File input selected:', files.length, 'files');
       } else {
-        // Handle directory picker
         const result = await selectMusicDirectory();
-        if (result && result.files) {
-          files = result.files;
+        if (result?.files) {
+          files = result.files.filter(fileData => fileData?.file instanceof File);
         }
         console.log('Directory picker selected:', files.length, 'files');
       }
 
       if (!files.length) {
-        setError('No audio files selected');
-        toast.error('No audio files selected');
+        setError('No valid audio files selected');
+        toast.error('No valid audio files selected');
         return;
       }
 
