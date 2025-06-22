@@ -70,6 +70,45 @@ export async function getSongById(id) {
   });
 }
 
+export async function deleteSong(id) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readwrite');
+    const store = transaction.objectStore('songs');
+    const request = store.delete(id);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function addFile(file) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readwrite');
+    const store = transaction.objectStore('songs');
+    const request = store.add({ file, title: file.name, artist: 'Unknown' });
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getFile(id) {
+  const database = db || await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction(['songs'], 'readonly');
+    const store = transaction.objectStore('songs');
+    const request = store.get(id);
+
+    request.onsuccess = () => {
+      const song = request.result;
+      resolve(song ? song.file : null);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
 export async function addPlaylist(playlist) {
   const database = db || await initDB();
   return new Promise((resolve, reject) => {
